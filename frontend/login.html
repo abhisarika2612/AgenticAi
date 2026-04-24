@@ -169,7 +169,7 @@ document.getElementById('loginBtn').onclick = () => {
         alert(`✅ Welcome ${email}! Redirecting to dashboard...`);
         
         // Redirect to dashboard
-        window.location.href = 'dashboard.html';
+        window.location.href = '/frontend/dashboard.html';
         
     } else {
         const mobile = document.getElementById('loginMobile').value;
@@ -188,7 +188,7 @@ document.getElementById('loginBtn').onclick = () => {
         alert(`✅ Welcome! You have logged in with mobile: ${result.value}`);
         
         // Redirect to dashboard
-        window.location.href = 'dashboard.html';
+        window.location.href = '/frontend/dashboard.html'
     }
 };
 
