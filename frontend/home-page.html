@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LastMinute AI - home-page</title>
+    <title>LastMinute AI - Smart Exam Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -11,18 +11,58 @@
         * { font-family: 'Inter', sans-serif; }
         body { background: linear-gradient(135deg, #f5f7fc 0%, #eef2f9 100%); min-height: 100vh; }
         .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); border-radius: 1rem; }
+        .glass-card-dark { background: rgba(255,255,255,0.95); border-radius: 1.5rem; }
+        .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(99,102,241,0.96), rgba(139,92,246,0.96)); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .nav-tab { transition: all 0.2s ease; cursor: pointer; padding: 0.5rem 1.25rem; border-radius: 0.75rem; }
+        .nav-tab.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+        .profile-avatar { transition: all 0.2s ease; cursor: pointer; display: inline-block; margin: 0 0.25rem; }
+        .profile-avatar.selected img { border: 3px solid #6366f1; transform: scale(1.05); }
+        .profile-avatar img { transition: all 0.2s ease; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; }
+        #appContainer { display: none; }
         .timer-display { font-family: monospace; font-size: 1.3rem; font-weight: bold; }
+        .alert-toast { position: fixed; top: 20px; right: 20px; z-index: 2000; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
-<nav>
-  <a href="home-page.html">Home</a>
-  <a href="login.html">Login</a>
-  <a href="dashboard.html">Dashboard</a>
-  <a href="profile.html">Profile</a>
-  <a href="timer.html">Timer</a>
-</nav>
-<div class="max-w-7xl mx-auto px-4 py-6">
+
+<!-- LOGIN PAGE -->
+<div id="loginModal" class="login-overlay">
+    <div class="glass-card-dark rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl">
+        <div class="text-center mb-6">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-600 p-3 rounded-2xl inline-block shadow-lg mb-3">
+                <i class="fas fa-bolt text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">LastMinute AI</h2>
+            <p class="text-gray-500 text-sm mt-1">Sign in to resolve doubts instantly</p>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                <button id="emailTabBtn" class="flex-1 py-2 rounded-lg text-sm font-medium bg-white shadow-sm text-indigo-600">📧 Email</button>
+                <button id="mobileTabBtn" class="flex-1 py-2 rounded-lg text-sm font-medium text-gray-600">📱 Mobile</button>
+            </div>
+            
+            <div id="emailInputGroup">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input type="email" id="loginEmail" placeholder="student@example.com" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-300">
+            </div>
+            
+            <div id="mobileInputGroup" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                <input type="tel" id="loginMobile" placeholder="9876543210" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-300">
+                <p class="text-xs text-gray-400 mt-1">Enter 10-digit number</p>
+            </div>
+            
+            <button id="loginBtn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition">
+                <i class="fas fa-arrow-right-to-bracket"></i> Continue
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appContainer" class="max-w-7xl mx-auto px-4 py-6">
     <!-- Header -->
     <div class="flex flex-wrap justify-between items-start mb-6 gap-4">
         <div class="flex items-center gap-3">
@@ -40,170 +80,238 @@
                 <span class="text-sm font-medium">Exam in:</span>
                 <span class="text-xl font-bold text-indigo-700 timer-display" id="countdownTimer">--:--:--</span>
             </div>
-            <button id="resetTimerBtn" class="bg-gray-100 hover:bg-indigo-100 text-gray-700 px-3 py-2 rounded-full transition">
-                <i class="fas fa-clock"></i> Set Timer
+            <button id="logoutBtn" class="bg-gray-100 hover:bg-red-100 text-gray-700 px-3 py-2 rounded-full transition">
+                <i class="fas fa-sign-out-alt"></i>
             </button>
         </div>
     </div>
 
-    <!-- Dashboard Content -->
+    <!-- Tabs -->
+    <div class="flex gap-3 mb-6 border-b pb-2 flex-wrap">
+        <button id="dashboardTab" class="nav-tab active"><i class="fas fa-home"></i> Dashboard</button>
+        <button id="smartCornerTab" class="nav-tab"><i class="fas fa-brain"></i> Smart Corner</button>
+        <button id="historyTab" class="nav-tab"><i class="fas fa-history"></i> History</button>
+        <button id="accountTab" class="nav-tab"><i class="fas fa-user-circle"></i> Account</button>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
     <div id="dashboardPage">
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column -->
             <div class="lg:col-span-2 space-y-6">
-                <!-- Upload Zone -->
+                <!-- Upload Section -->
                 <div class="glass-card p-5">
                     <h2 class="font-bold text-xl mb-4"><i class="fas fa-upload text-indigo-500"></i> Your Study Materials</h2>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div id="notesZone" class="border-2 border-dashed border-indigo-300 rounded-xl p-4 text-center cursor-pointer hover:bg-indigo-50 transition">
+                    <div class="grid grid-cols-3 gap-4">
+                        <div id="notesZone" class="border-2 border-dashed border-indigo-300 rounded-xl p-4 text-center cursor-pointer hover:bg-indigo-50">
                             <i class="fas fa-book-open text-indigo-400 text-3xl mb-2"></i>
-                            <p class="font-medium">📄 Upload Notes</p>
-                            <p class="text-xs text-gray-400">PDF, Images</p>
-                            <input type="file" id="notesInput" multiple accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                            <p>📄 Upload Notes</p>
+                            <input type="file" id="notesInput" multiple accept=".pdf,.jpg,.png" class="hidden">
                         </div>
-                        <div id="papersZone" class="border-2 border-dashed border-purple-300 rounded-xl p-4 text-center cursor-pointer hover:bg-purple-50 transition">
+                        <div id="papersZone" class="border-2 border-dashed border-purple-300 rounded-xl p-4 text-center cursor-pointer hover:bg-purple-50">
                             <i class="fas fa-scroll text-purple-400 text-3xl mb-2"></i>
-                            <p class="font-medium">📝 Upload Past Papers</p>
-                            <p class="text-xs text-gray-400">PDF, Images</p>
-                            <input type="file" id="papersInput" multiple accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                            <p>📝 Past Papers</p>
+                            <input type="file" id="papersInput" multiple accept=".pdf,.jpg,.png" class="hidden">
+                        </div>
+                        <div id="universityZone" class="border-2 border-dashed border-emerald-300 rounded-xl p-4 text-center cursor-pointer hover:bg-emerald-50">
+                            <i class="fas fa-university text-emerald-400 text-3xl mb-2"></i>
+                            <p>🏛️ University Papers</p>
+                            <input type="file" id="universityInput" multiple accept=".pdf,.jpg,.png" class="hidden">
                         </div>
                     </div>
                     <div id="fileList" class="mt-3 text-xs flex flex-wrap gap-1"></div>
                     <div class="flex justify-between mt-3 text-xs text-gray-400">
                         <span>📚 Notes: <span id="notesCount">0</span></span>
                         <span>📋 Papers: <span id="papersCount">0</span></span>
+                        <span>🏛️ University: <span id="universityCount">0</span></span>
                     </div>
                 </div>
 
-                <!-- Ask Doubt Section -->
+                <!-- Ask Doubt -->
                 <div class="glass-card p-5">
                     <div class="flex justify-between items-center mb-3">
                         <h2 class="font-bold text-xl"><i class="fas fa-question-circle text-amber-500"></i> Ask Your Doubt</h2>
-                        <button id="voiceBtn" class="bg-gray-100 hover:bg-indigo-100 p-2 rounded-full transition">
-                            <i class="fas fa-microphone text-indigo-600"></i> Voice
-                        </button>
+                        <button id="voiceBtn" class="bg-gray-100 hover:bg-indigo-100 p-2 rounded-full"><i class="fas fa-microphone text-indigo-600"></i></button>
                     </div>
-                    <textarea id="questionInput" rows="2" class="w-full border rounded-xl p-3 focus:ring-2 focus:ring-indigo-300 resize-none" placeholder='Example: "Explain Hess"s Law from my chemistry notes"'></textarea>
-                    <button id="askBtn" class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-xl w-full hover:bg-indigo-700 transition font-medium">
-                        <i class="fas fa-paper-plane"></i> Get Answer
-                    </button>
-                    
-                    <!-- Answer Area -->
+                    <textarea id="questionInput" rows="2" class="w-full border rounded-xl p-3 focus:ring-2 focus:ring-indigo-300" placeholder='Example: "Explain Newton's Second Law" or "What is Hess's Law?"'></textarea>
+                    <button id="askBtn" class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-xl w-full hover:bg-indigo-700">Get Answer</button>
                     <div id="answerArea" class="mt-4 p-4 bg-indigo-50 rounded-xl hidden">
-                        <div class="flex justify-between items-center">
-                            <span class="font-semibold text-indigo-800"><i class="fas fa-brain"></i> AI Answer</span>
-                            <span id="confidenceBadge" class="bg-white px-2 py-1 rounded-full text-xs font-bold text-indigo-600"></span>
-                        </div>
-                        <div id="answerText" class="mt-2 text-gray-700 text-sm leading-relaxed"></div>
+                        <div class="flex justify-between"><span class="font-semibold text-indigo-800">AI Answer</span><span id="confidenceBadge" class="bg-white px-2 py-1 rounded-full text-xs"></span></div>
+                        <div id="answerText" class="mt-2 text-gray-700 text-sm"></div>
                         <div id="citationSource" class="mt-2 text-xs text-gray-400 border-t pt-2"></div>
                     </div>
-                    
-                    <!-- Loading Indicator -->
-                    <div id="loadingAnswer" class="hidden mt-3 text-center text-indigo-600">
-                        <i class="fas fa-spinner fa-spin"></i> Searching your notes...
-                    </div>
+                    <div id="loadingAnswer" class="hidden mt-3 text-center text-indigo-600">⏳ Searching your notes...</div>
                 </div>
 
-                <!-- Past Paper Quiz Engine -->
+                <!-- Quiz -->
                 <div class="glass-card p-5">
-                    <h2 class="font-bold text-xl mb-3"><i class="fas fa-puzzle-piece text-purple-500"></i> Past Paper Practice Engine</h2>
-                    <p id="quizQuestion" class="text-gray-600 mb-3">📌 Upload past papers to unlock AI-powered quiz questions!</p>
-                    <button id="genQuizBtn" class="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700 transition font-medium">
-                        <i class="fas fa-magic"></i> Generate Quiz Question
-                    </button>
-                    
-                    <!-- Quiz Area -->
+                    <h2 class="font-bold text-xl mb-3"><i class="fas fa-puzzle-piece text-purple-500"></i> Topic Quiz</h2>
+                    <p id="quizQuestion" class="text-gray-600 mb-3">Upload materials to generate practice questions!</p>
+                    <button id="genQuizBtn" class="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700">Generate Quiz</button>
                     <div id="quizArea" class="mt-4 hidden">
-                        <textarea id="quizAnswer" rows="2" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-300" placeholder="Type your answer here..."></textarea>
-                        <button id="evaluateQuizBtn" class="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition font-medium">
-                            <i class="fas fa-check-double"></i> Evaluate My Answer
-                        </button>
+                        <textarea id="quizAnswer" rows="2" class="w-full border rounded-lg p-2" placeholder="Type your answer..."></textarea>
+                        <button id="evaluateQuizBtn" class="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg">Evaluate</button>
                         <div id="quizFeedback" class="mt-3 text-sm p-3 bg-gray-50 rounded-lg hidden"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Right Column -->
             <div class="space-y-6">
-                <!-- Exam Readiness -->
                 <div class="glass-card p-5">
                     <h2 class="font-bold text-xl mb-3"><i class="fas fa-chart-line text-emerald-500"></i> Exam Readiness</h2>
-                    <div class="flex justify-between mb-1">
-                        <span class="text-sm">Confidence Score</span>
-                        <span id="overallScore" class="font-bold text-indigo-600">0%</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-3">
-                        <div id="progressFill" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-3 rounded-full w-0 transition-all duration-500"></div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 mt-4 text-center text-sm">
-                        <div class="bg-white p-2 rounded-lg shadow-sm">
-                            <i class="fas fa-check-circle text-green-500 text-lg"></i>
-                            <div class="mt-1"><span id="masteredCount">0</span> Mastered Topics</div>
-                        </div>
-                        <div class="bg-white p-2 rounded-lg shadow-sm">
-                            <i class="fas fa-exclamation-triangle text-amber-500 text-lg"></i>
-                            <div class="mt-1"><span id="weakCount">0</span> Weak Areas</div>
-                        </div>
-                    </div>
+                    <div>Confidence Score: <span id="overallScore" class="font-bold text-indigo-600">0%</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mt-1"><div id="progressFill" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-3 rounded-full w-0"></div></div>
                 </div>
-
-                <!-- Topic Mind Map -->
                 <div class="glass-card p-5">
-                    <div class="flex justify-between items-center mb-3">
-                        <h2 class="font-bold text-xl"><i class="fas fa-project-diagram text-cyan-600"></i> Topic Mind Map</h2>
-                        <button id="refreshMapBtn" class="text-xs bg-cyan-100 hover:bg-cyan-200 px-2 py-1 rounded transition">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                    <div id="mindmap" class="mt-2 min-h-[150px] bg-white/50 rounded-xl p-3 text-center text-gray-400">
-                        <i class="fas fa-cloud-upload-alt text-2xl mb-2 block"></i>
-                        Upload notes to generate topic map
-                    </div>
+                    <h2 class="font-bold text-xl"><i class="fas fa-project-diagram text-cyan-600"></i> Topics Covered</h2>
+                    <div id="mindmap" class="mt-3 text-center text-gray-400">Upload notes to see topics</div>
                 </div>
-
-                <!-- Study Streak -->
                 <div class="glass-card p-4 flex justify-between items-center">
-                    <div>
-                        <i class="fas fa-fire text-pink-500 text-xl"></i>
-                        <span class="ml-2 font-semibold">Study Streak</span>
-                        <div class="text-3xl font-bold text-pink-600" id="streakValue">0</div>
-                    </div>
-                    <button id="streakBtn" class="bg-pink-100 hover:bg-pink-200 p-3 rounded-full transition">
-                        <i class="fas fa-plus-circle text-pink-500 text-xl"></i>
-                    </button>
-                </div>
-
-                <!-- Tips Card -->
-                <div class="glass-card p-4 bg-gradient-to-r from-indigo-50 to-purple-50">
-                    <div class="flex items-start gap-3">
-                        <i class="fas fa-lightbulb text-yellow-500 text-xl mt-1"></i>
-                        <div>
-                            <h3 class="font-semibold text-gray-800">Pro Tip</h3>
-                            <p class="text-xs text-gray-600 mt-1">Upload your notes and past papers first! The AI answers only from YOUR materials - no hallucinations.</p>
-                        </div>
-                    </div>
+                    <div><i class="fas fa-fire text-pink-500 text-xl"></i> Study Streak: <span id="streakValue" class="font-bold text-2xl">0</span></div>
+                    <button id="streakBtn" class="bg-pink-100 hover:bg-pink-200 px-4 py-2 rounded-full"><i class="fas fa-plus"></i> Log Day</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <div class="mt-8 text-center text-gray-400 text-sm border-t pt-5 italic">
-        "Google searches the web. We search your brain — and give you back only what matters for tomorrow morning."
+    <!-- SMART CORNER PAGE -->
+    <div id="smartCornerPage" class="hidden">
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold"><i class="fas fa-brain text-indigo-500"></i> Smart Corner - AI Predicted Tests</h2>
+                <button id="generateTestBtn" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg">
+                    <i class="fas fa-magic"></i> Generate New Test
+                </button>
+            </div>
+            
+            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-xl mb-6 border border-amber-200">
+                <i class="fas fa-chart-line text-amber-600"></i>
+                <span class="font-semibold text-amber-800"> How AI Predicts Questions:</span>
+                <p class="text-sm text-amber-700 mt-1">Analyzes patterns from your uploaded university papers and past papers to predict questions with HIGHEST probability of appearing in exams!</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Number of Questions</label>
+                    <select id="testQuestionCount" class="w-full px-3 py-2 border rounded-lg">
+                        <option value="5">5 Questions</option>
+                        <option value="10" selected>10 Questions</option>
+                        <option value="15">15 Questions</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Difficulty Level</label>
+                    <select id="testDifficulty" class="w-full px-3 py-2 border rounded-lg">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="testContainer" class="hidden">
+                <div class="bg-white rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <span class="text-sm text-gray-500">Question <span id="currentQNum">1</span> of <span id="totalQNum">10</span></span>
+                            <div class="w-64 bg-gray-200 rounded-full h-2 mt-1">
+                                <div id="testProgress" class="bg-indigo-600 h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div id="probabilityBadge" class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-semibold">🎯 0% Probability</div>
+                    </div>
+                    
+                    <p id="questionText" class="text-lg font-semibold text-gray-800 mb-4"></p>
+                    <textarea id="answerInput" rows="4" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-indigo-300 mb-4" placeholder="Type your answer here..."></textarea>
+                    
+                    <div class="flex justify-between gap-3">
+                        <button id="prevBtn" class="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50" disabled>← Previous</button>
+                        <button id="nextBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Next →</button>
+                        <button id="submitTestBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 hidden">Submit Test</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultsContainer" class="hidden bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6">
+                <h3 class="text-2xl font-bold mb-4">📊 Test Results</h3>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-lg text-center">
+                        <p class="text-gray-500">Final Score</p>
+                        <p class="text-3xl font-bold text-indigo-600" id="finalScore">0%</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center">
+                        <p class="text-gray-500">Correct Answers</p>
+                        <p class="text-3xl font-bold text-green-600" id="correctCount">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center">
+                        <p class="text-gray-500">AI Prediction Accuracy</p>
+                        <p class="text-3xl font-bold text-amber-600" id="aiAccuracy">92%</p>
+                    </div>
+                </div>
+                <div id="detailedResults" class="space-y-3 max-h-96 overflow-y-auto"></div>
+                <button id="retakeBtn" class="mt-4 w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700">Retake Smart Test</button>
+            </div>
+
+            <div id="noPapersWarning" class="hidden text-center py-12">
+                <i class="fas fa-exclamation-triangle text-6xl text-amber-400 mb-4"></i>
+                <p class="text-gray-600 font-semibold">No University Papers Found!</p>
+                <p class="text-sm text-gray-500 mt-2">Please upload University Previous Year Papers in the Dashboard first.</p>
+            </div>
+        </div>
     </div>
+
+    <!-- HISTORY PAGE -->
+    <div id="historyPage" class="hidden">
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold"><i class="fas fa-history text-indigo-500"></i> Question History</h2>
+                <button id="clearHistoryBtn" class="text-red-500 text-sm bg-red-50 px-3 py-1 rounded-lg hover:bg-red-100">Clear All</button>
+            </div>
+            <div id="historyList" class="space-y-3 max-h-[500px] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- ACCOUNT PAGE -->
+    <div id="accountPage" class="hidden">
+        <div class="glass-card p-6 max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold mb-6"><i class="fas fa-user-circle text-indigo-500"></i> My Account</h2>
+            <div class="mb-6">
+                <label class="block font-semibold mb-3">Profile Avatar</label>
+                <div class="flex flex-wrap gap-3 justify-center" id="avatarContainer">
+                    <div class="profile-avatar" data-avatar="1"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A1"></div>
+                    <div class="profile-avatar" data-avatar="2"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A2"></div>
+                    <div class="profile-avatar" data-avatar="3"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A3"></div>
+                    <div class="profile-avatar" data-avatar="4"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A4"></div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div><label class="font-semibold">Full Name</label><input type="text" id="fullName" class="w-full px-4 py-2 rounded-xl border mt-1" placeholder="Enter your name"></div>
+                <div><label class="font-semibold">Grade/Year</label><select id="grade" class="w-full px-4 py-2 rounded-xl border mt-1"><option>10th Grade</option><option>11th Grade</option><option>12th Grade</option><option>University 1st Year</option><option>University 2nd Year</option></select></div>
+                <div><label class="font-semibold">Login ID</label><input type="text" id="loginIdDisplay" readonly class="w-full px-4 py-2 rounded-xl border bg-gray-50 mt-1"></div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button id="saveAccountBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-xl hover:bg-indigo-700">Save Changes</button>
+                <button id="resetAccountBtn" class="bg-gray-200 px-6 py-2 rounded-xl hover:bg-gray-300">Reset</button>
+            </div>
+            <div id="saveMsg" class="mt-3 text-sm text-green-600 hidden"></div>
+        </div>
+    </div>
+
+    <div class="mt-8 text-center text-gray-400 text-sm border-t pt-5 italic">"Google searches the web. We search your brain — and give you back only what matters."</div>
 </div>
 
 <script>
-// ========== BACKEND CONNECTION (CHANGED FOR 2 LAPTOPS) ==========
-// CHANGE THIS IP TO YOUR BACKEND LAPTOP'S IP ADDRESS
-const API_URL = 'http://localhost:5000/api';  // ← CHANGE 'localhost' to backend laptop IP
-let authToken = localStorage.getItem('authToken');
+// ========== APP STATE ==========
 let currentUser = null;
-
-// Timer
+let searchHistory = [];
+let uploadedNotes = [];
+let uploadedPapers = [];
+let uploadedUniversity = [];
+let streak = 0;
+let userProfile = { avatar: '1', name: '', grade: '12th Grade' };
 let examTime = null;
 let timerInterval = null;
 
+// ========== TIMER FUNCTIONS ==========
 function updateTimerDisplay() {
     if (!examTime) {
         let d = new Date();
@@ -227,383 +335,220 @@ function startTimer() {
     timerInterval = setInterval(updateTimerDisplay, 1000);
 }
 
-// App State
-let uploadedNotes = [];
-let uploadedPapers = [];
-let topicProgress = {};
-let streak = 0;
+// ========== SYLLABUS VALIDATION (Feature 1) ==========
+const allowedTopics = ['physics', 'chemistry', 'math', 'biology', 'calculus', 'algebra', 'newton', 'hess', 'thermodynamics', 'kinematics', 'optics', 'electricity', 'magnetism', 'dna', 'cell', 'photosynthesis'];
+const bannedWords = ['hack', 'cheat', 'illegal', 'violence', 'abuse', 'porn', 'sex', 'drug', 'weapon'];
 
-// Helper Functions
-function extractTopics(filename) {
-    let name = filename.toLowerCase();
-    if (name.includes('calculus') || name.includes('math')) return ['Calculus'];
-    if (name.includes('physics')) return ['Physics'];
-    if (name.includes('chem')) return ['Chemistry'];
-    if (name.includes('bio')) return ['Biology'];
-    return ['General Studies'];
+function showAlert(message, type = 'warning') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert-toast ${type === 'error' ? 'bg-red-500' : 'bg-amber-500'} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2`;
+    alertDiv.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i> ${message}`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
 }
 
-// ========== BACKEND API CALLS (CHANGED) ==========
-async function loadUserData() {
-    if (!authToken) return;
+function isOutOfSyllabus(question) {
+    const lowerQ = question.toLowerCase();
     
-    try {
-        const response = await fetch(`${API_URL}/user/data`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+    // Check for inappropriate content
+    for (let word of bannedWords) {
+        if (lowerQ.includes(word)) {
+            return { out: true, reason: "❌ Question violates content guidelines! Please ask academic questions only." };
+        }
+    }
+    
+    // Check if question is related to syllabus topics
+    let hasTopic = false;
+    for (let topic of allowedTopics) {
+        if (lowerQ.includes(topic)) {
+            hasTopic = true;
+            break;
+        }
+    }
+    
+    // If no notes uploaded and question is off-topic
+    if (!hasTopic && uploadedNotes.length === 0 && uploadedPapers.length === 0) {
+        return { out: true, reason: "⚠️ This question appears out of syllabus. Please upload your course materials first. Suggested topics: Physics, Chemistry, Mathematics, Biology" };
+    }
+    
+    // If has notes but question doesn't match
+    if (!hasTopic && (uploadedNotes.length > 0 || uploadedPapers.length > 0)) {
+        let userTopics = [];
+        [...uploadedNotes, ...uploadedPapers].forEach(doc => {
+            let name = doc.name.toLowerCase();
+            if (name.includes('physics')) userTopics.push('Physics');
+            else if (name.includes('chem')) userTopics.push('Chemistry');
+            else if (name.includes('math')) userTopics.push('Math');
+            else if (name.includes('bio')) userTopics.push('Biology');
         });
-        const data = await response.json();
-        
-        if (data.success) {
-            uploadedNotes = data.data.uploadedNotes || [];
-            uploadedPapers = data.data.uploadedPapers || [];
-            topicProgress = data.data.topicProgress || {};
-            streak = data.data.streak || 0;
-            refreshUI();
+        if (userTopics.length > 0) {
+            return { out: true, reason: `📚 Your question seems outside your uploaded materials. Your topics: ${userTopics.join(', ')}. Please ask questions related to these subjects.` };
         }
-    } catch (error) {
-        console.error('Error loading user data:', error);
-        // Fallback to localStorage if backend not available
-        loadSavedData();
     }
+    
+    return { out: false };
 }
 
-async function getAIAnswer(question) {
-    if (!authToken) {
-        return { 
-            text: "⚠️ Please login first!", 
-            source: "Authentication required", 
-            confidence: 0 
-        };
-    }
-    
-    try {
-        const response = await fetch(`${API_URL}/doubt/ask`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ question })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            return {
-                text: data.answer,
-                source: data.source,
-                confidence: data.confidence
-            };
-        } else {
-            return {
-                text: "⚠️ Error: " + data.message,
-                source: "API Error",
-                confidence: 0
-            };
-        }
-    } catch (error) {
-        console.error('Error asking question:', error);
-        // Fallback to mock response if backend not available
-        return getMockAnswer(question);
-    }
+// ========== STORAGE FUNCTIONS ==========
+function saveAllData() {
+    if (!currentUser) return;
+    localStorage.setItem(`lm_${currentUser.value}`, JSON.stringify({
+        searchHistory, uploadedNotes, uploadedPapers, uploadedUniversity, streak, userProfile
+    }));
 }
 
-// Mock fallback when backend is not available
-function getMockAnswer(question) {
-    if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
-        return { 
-            text: "⚠️ No study materials found! Please upload your notes or past papers first.", 
-            source: "No documents uploaded", 
-            confidence: 0 
-        };
+function loadAllData() {
+    if (!currentUser) return;
+    let saved = localStorage.getItem(`lm_${currentUser.value}`);
+    if (saved) {
+        let data = JSON.parse(saved);
+        searchHistory = data.searchHistory || [];
+        uploadedNotes = data.uploadedNotes || [];
+        uploadedPapers = data.uploadedPapers || [];
+        uploadedUniversity = data.uploadedUniversity || [];
+        streak = data.streak || 0;
+        userProfile = data.userProfile || { avatar: '1', name: '', grade: '12th Grade' };
     }
-    
-    let allDocs = [...uploadedNotes, ...uploadedPapers];
-    let doc = allDocs[0];
-    let answer = "";
-    
-    if (question.toLowerCase().includes('hess') || question.toLowerCase().includes('enthalpy')) {
-        answer = "📖 From your Chemistry notes:\n\nHess's Law states that the total enthalpy change of a reaction is independent of the pathway taken.\n\nFormula: ΔH°rxn = Σ ΔH°f(products) - Σ ΔH°f(reactants)";
-    } 
-    else if (question.toLowerCase().includes('calculus') || question.toLowerCase().includes('derivative')) {
-        answer = "📖 From your Mathematics notes:\n\nThe derivative represents the instantaneous rate of change.\n\nBasic rules:\n• d/dx[x^n] = n·x^(n-1)\n• d/dx[sin x] = cos x\n• d/dx[e^x] = e^x";
-    }
-    else if (question.toLowerCase().includes('newton') || question.toLowerCase().includes('force')) {
-        answer = "📖 From your Physics notes:\n\nNewton's Laws of Motion:\n\n1st Law: Inertia\n2nd Law: F = ma\n3rd Law: Action-Reaction";
-    }
-    else {
-        answer = `📖 From "${doc.name}":\n\nBased on your study materials, review the section on ${doc.topics.join(', ')} for this concept.`;
-    }
-    
-    return { text: answer, source: `📌 Grounded in: ${doc.name}`, confidence: 87 };
-}
-
-async function uploadFiles(type, files) {
-    if (!authToken) {
-        alert('Please login first!');
-        return;
-    }
-    
-    const formData = new FormData();
-    for (let file of files) {
-        formData.append('files', file);
-    }
-    
-    try {
-        const endpoint = type === 'notes' ? '/files/notes' : '/files/papers';
-        const response = await fetch(`${API_URL}${endpoint}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}` },
-            body: formData
-        });
-        
-        const data = await response.json();
-        if (data.success) {
-            await loadUserData(); // Reload all data
-            alert(`${files.length} file(s) uploaded successfully!`);
-        } else {
-            alert('Upload failed: ' + data.message);
-        }
-    } catch (error) {
-        console.error('Upload error:', error);
-        // Fallback to localStorage
-        if (type === 'notes') {
-            for (let f of files) {
-                let topics = extractTopics(f.name);
-                uploadedNotes.push({ name: f.name, topics: topics });
-                topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
-            }
-        } else {
-            for (let f of files) {
-                let topics = extractTopics(f.name);
-                uploadedPapers.push({ name: f.name, topics: topics });
-                topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
-            }
-        }
-        refreshUI();
-    }
+    refreshUI();
+    loadProfileForm();
 }
 
 function refreshUI() {
-    // Update file list
+    // Update file counts
+    document.getElementById('notesCount').innerText = uploadedNotes.length;
+    document.getElementById('papersCount').innerText = uploadedPapers.length;
+    document.getElementById('universityCount').innerText = uploadedUniversity.length;
+    document.getElementById('streakValue').innerText = streak;
+    
+    // Update file list display
     let fileDiv = document.getElementById('fileList');
     fileDiv.innerHTML = '';
     uploadedNotes.forEach(f => fileDiv.innerHTML += `<span class="bg-indigo-100 px-2 py-1 rounded text-xs">📄 ${f.name}</span>`);
-    uploadedPapers.forEach(p => fileDiv.innerHTML += `<span class="bg-purple-100 px-2 py-1 rounded text-xs">📝 ${p.name}</span>`);
-    document.getElementById('notesCount').innerText = uploadedNotes.length;
-    document.getElementById('papersCount').innerText = uploadedPapers.length;
+    uploadedPapers.forEach(f => fileDiv.innerHTML += `<span class="bg-purple-100 px-2 py-1 rounded text-xs">📝 ${f.name}</span>`);
+    uploadedUniversity.forEach(f => fileDiv.innerHTML += `<span class="bg-emerald-100 px-2 py-1 rounded text-xs">🏛️ ${f.name}</span>`);
     
-    // Update confidence
-    let total = 0, correct = 0;
-    for (let t in topicProgress) {
-        total += topicProgress[t].total;
-        correct += topicProgress[t].correct;
-    }
-    let score = total === 0 ? 0 : Math.round((correct / total) * 100);
+    // Update confidence score
+    let total = searchHistory.length;
+    let score = Math.min(100, total * 10);
     document.getElementById('overallScore').innerText = score + '%';
     document.getElementById('progressFill').style.width = score + '%';
     
-    // Update counts
-    let mastered = 0, weak = 0;
-    for (let t in topicProgress) {
-        let rate = topicProgress[t].total ? topicProgress[t].correct / topicProgress[t].total : 0;
-        if (rate >= 0.7) mastered++;
-        if (rate < 0.5 && topicProgress[t].total > 0) weak++;
-    }
-    document.getElementById('masteredCount').innerText = mastered;
-    document.getElementById('weakCount').innerText = weak;
-    document.getElementById('streakValue').innerText = streak;
-    
-    // Update mind map
-    let allTopics = new Set();
-    [...uploadedNotes, ...uploadedPapers].forEach(d => d.topics.forEach(t => allTopics.add(t)));
+    // Update topics mindmap
+    let topics = new Set();
+    [...uploadedNotes, ...uploadedPapers, ...uploadedUniversity].forEach(doc => {
+        let name = doc.name.toLowerCase();
+        if (name.includes('physics')) topics.add('⚡ Physics');
+        else if (name.includes('chem')) topics.add('🧪 Chemistry');
+        else if (name.includes('math')) topics.add('📐 Math');
+        else if (name.includes('bio')) topics.add('🧬 Biology');
+        else topics.add('📚 General');
+    });
     let mindDiv = document.getElementById('mindmap');
-    if (allTopics.size === 0) {
-        mindDiv.innerHTML = '<i class="fas fa-cloud-upload-alt text-2xl mb-2 block"></i>Upload notes to generate topic map';
+    if (topics.size === 0) {
+        mindDiv.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Upload notes to see topics';
     } else {
-        mindDiv.innerHTML = '<div class="flex flex-wrap gap-2 justify-center">' + Array.from(allTopics).map(t => {
-            let rate = topicProgress[t] ? topicProgress[t].correct / topicProgress[t].total : 0;
-            let isWeak = topicProgress[t] && rate < 0.5 && topicProgress[t].total > 0;
-            return `<span class="px-3 py-1 rounded-full text-xs ${isWeak ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}"><i class="fas ${isWeak ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i> ${t}</span>`;
-        }).join('') + '</div>';
+        mindDiv.innerHTML = Array.from(topics).map(t => `<span class="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm m-1">${t}</span>`).join('');
+    }
+}
+
+function loadProfileForm() {
+    document.getElementById('fullName').value = userProfile.name || '';
+    document.getElementById('grade').value = userProfile.grade || '12th Grade';
+    document.getElementById('loginIdDisplay').value = currentUser ? currentUser.value : '';
+    document.querySelectorAll('.profile-avatar').forEach(av => {
+        av.classList.remove('selected');
+        if (av.dataset.avatar === userProfile.avatar) av.classList.add('selected');
+    });
+}
+
+function saveProfile() {
+    userProfile.name = document.getElementById('fullName').value;
+    userProfile.grade = document.getElementById('grade').value;
+    saveAllData();
+    let msg = document.getElementById('saveMsg');
+    msg.innerHTML = '✅ Profile saved successfully!';
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 2000);
+}
+
+// ========== AI ANSWER FUNCTIONS ==========
+function extractTopics(filename) {
+    let name = filename.toLowerCase();
+    if (name.includes('calculus') || name.includes('math')) return 'Mathematics';
+    if (name.includes('physics')) return 'Physics';
+    if (name.includes('chem')) return 'Chemistry';
+    if (name.includes('bio')) return 'Biology';
+    return 'General Studies';
+}
+
+function getAIAnswer(question) {
+    // Check syllabus first
+    const syllabusCheck = isOutOfSyllabus(question);
+    if (syllabusCheck.out) {
+        showAlert(syllabusCheck.reason, 'error');
+        return { text: syllabusCheck.reason, source: "Syllabus Validation", confidence: 0 };
     }
     
-    // Save to localStorage as backup
-    localStorage.setItem('uploadedNotes', JSON.stringify(uploadedNotes));
-    localStorage.setItem('uploadedPapers', JSON.stringify(uploadedPapers));
-    localStorage.setItem('topicProgress', JSON.stringify(topicProgress));
-    localStorage.setItem('streak', streak);
-}
-
-// File handlers
-async function addNotes(files) {
-    await uploadFiles('notes', files);
-}
-
-async function addPapers(files) {
-    await uploadFiles('papers', files);
-}
-
-// Load saved data from localStorage (fallback)
-function loadSavedData() {
-    let savedNotes = localStorage.getItem('uploadedNotes');
-    let savedPapers = localStorage.getItem('uploadedPapers');
-    let savedProgress = localStorage.getItem('topicProgress');
-    let savedStreak = localStorage.getItem('streak');
-    
-    if (savedNotes) uploadedNotes = JSON.parse(savedNotes);
-    if (savedPapers) uploadedPapers = JSON.parse(savedPapers);
-    if (savedProgress) topicProgress = JSON.parse(savedProgress);
-    if (savedStreak) streak = parseInt(savedStreak);
-    
-    refreshUI();
-}
-
-// Check if user is logged in (simple check for demo)
-function checkLogin() {
-    // For demo purposes, auto-create a demo user
-    if (!authToken) {
-        authToken = 'demo_token_' + Date.now();
-        localStorage.setItem('authToken', authToken);
-        currentUser = { id: 'demo', loginId: 'demo@student.com' };
-    }
-    loadUserData();
-}
-
-// Event Handlers
-document.getElementById('askBtn').onclick = async () => {
-    let question = document.getElementById('questionInput').value.trim();
-    if (!question) { alert('Please enter your doubt!'); return; }
-    
-    document.getElementById('loadingAnswer').classList.remove('hidden');
-    document.getElementById('answerArea').classList.add('hidden');
-    
-    let result = await getAIAnswer(question);
-    
-    document.getElementById('answerText').innerHTML = result.text.replace(/\n/g, '<br>');
-    document.getElementById('citationSource').innerHTML = result.source;
-    document.getElementById('confidenceBadge').innerHTML = `🧠 ${result.confidence}% confidence`;
-    document.getElementById('answerArea').classList.remove('hidden');
-    document.getElementById('loadingAnswer').classList.add('hidden');
-};
-
-document.getElementById('voiceBtn').onclick = () => {
-    if ('webkitSpeechRecognition' in window) {
-        let recognition = new webkitSpeechRecognition();
-        recognition.onresult = (e) => {
-            document.getElementById('questionInput').value = e.results[0][0].transcript;
-        };
-        recognition.start();
-    } else {
-        alert('Voice input not supported in this browser. Please use Chrome or Edge.');
-    }
-};
-
-document.getElementById('genQuizBtn').onclick = async () => {
+    // Check if materials exist
     if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
-        alert('Please upload study materials first!');
+        return { text: "⚠️ Please upload your study materials first! I can only answer based on YOUR notes and past papers.", source: "No documents", confidence: 0 };
+    }
+    
+    // Generate answer from uploaded materials
+    let allDocs = [...uploadedNotes, ...uploadedPapers];
+    let doc = allDocs[0];
+    let answer = `📖 Based on "${doc.name}":\n\n`;
+    
+    const lowerQ = question.toLowerCase();
+    if (lowerQ.includes('newton')) {
+        answer += "Newton's Second Law of Motion states that Force = mass × acceleration (F = ma). This is a fundamental principle in physics.";
+    } else if (lowerQ.includes('hess')) {
+        answer += "Hess's Law states that the total enthalpy change in a chemical reaction is independent of the pathway taken. ΔH°rxn = ΣΔH°f(products) - ΣΔH°f(reactants)";
+    } else if (lowerQ.includes('calculus') || lowerQ.includes('derivative')) {
+        answer += "The derivative measures the instantaneous rate of change. The power rule: d/dx[x^n] = n·x^(n-1)";
+    } else if (lowerQ.includes('photosynthesis')) {
+        answer += "Photosynthesis is the process by which plants convert light energy into chemical energy. Equation: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂";
+    } else {
+        let topic = extractTopics(doc.name);
+        answer += `This question relates to ${topic}. Based on your uploaded materials, please review the section on ${lowerQ.substring(0, 50)}... for detailed explanation.`;
+    }
+    
+    return { text: answer, source: `📌 Grounded in: ${doc.name}`, confidence: 85 };
+}
+
+function addToHistory(question, answer, confidence) {
+    searchHistory.unshift({
+        id: Date.now(),
+        question: question.substring(0, 70),
+        answer: answer.substring(0, 100),
+        time: new Date().toLocaleString(),
+        confidence: confidence
+    });
+    if (searchHistory.length > 30) searchHistory.pop();
+    saveAllData();
+    renderHistory();
+}
+
+function renderHistory() {
+    let container = document.getElementById('historyList');
+    if (searchHistory.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="fas fa-search text-4xl mb-2"></i><p>No questions asked yet</p></div>';
         return;
     }
-    
-    try {
-        const response = await fetch(`${API_URL}/doubt/generate-quiz`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            document.getElementById('quizQuestion').innerHTML = '❓ ' + data.question;
-        } else {
-            document.getElementById('quizQuestion').innerHTML = '❓ Based on your materials: Explain a key concept from your notes.';
-        }
-    } catch (error) {
-        document.getElementById('quizQuestion').innerHTML = '❓ Based on your materials: Explain a key concept from your notes.';
-    }
-    
-    document.getElementById('quizArea').classList.remove('hidden');
-};
+    container.innerHTML = searchHistory.map(h => `
+        <div class="bg-white rounded-xl p-3 border hover:shadow-md transition">
+            <div class="font-semibold text-indigo-800">❓ ${h.question}</div>
+            <div class="text-xs text-gray-500 mt-1">🕐 ${h.time} | 🧠 ${h.confidence}% confidence</div>
+            <div class="text-sm text-gray-600 mt-2">${h.answer}</div>
+        </div>
+    `).join('');
+}
 
-document.getElementById('evaluateQuizBtn').onclick = async () => {
-    let answer = document.getElementById('quizAnswer').value.trim();
-    if (!answer) { alert('Please provide an answer'); return; }
-    
-    try {
-        const response = await fetch(`${API_URL}/doubt/evaluate-quiz`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ answer })
-        });
-        const data = await response.json();
-        
-        if (data.success) {
-            document.getElementById('quizFeedback').innerHTML = data.feedback;
-        } else {
-            document.getElementById('quizFeedback').innerHTML = '✅ Great attempt! Keep practicing!';
-        }
-    } catch (error) {
-        let feedback = '✅ Great attempt! ';
-        if (answer.length > 30) {
-            feedback += 'Your answer shows good understanding.';
-        } else {
-            feedback += 'Try to write more detailed answers.';
-        }
-        document.getElementById('quizFeedback').innerHTML = feedback;
+// ========== FILE HANDLERS ==========
+async function addNotes(files) {
+    for (let f of files) {
+        uploadedNotes.push({ name: f.name, topics: extractTopics(f.name) });
     }
-    
-    document.getElementById('quizFeedback').classList.remove('hidden');
-    
-    // Update progress
-    let topics = [...uploadedNotes, ...uploadedPapers].flatMap(d => d.topics);
-    topics.slice(0, 2).forEach(t => {
-        if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 };
-        topicProgress[t].total++;
-        if (answer.length > 25) topicProgress[t].correct++;
-    });
+    saveAllData();
     refreshUI();
-};
-
-document.getElementById('refreshMapBtn').onclick = () => refreshUI();
-document.getElementById('streakBtn').onclick = async () => { 
-    streak++; 
-    refreshUI();
-    
-    // Try to save to backend
-    if (authToken) {
-        try {
-            await fetch(`${API_URL}/user/streak`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${authToken}` }
-            });
-        } catch(e) {}
-    }
-    
-    alert(`🔥 Study streak: ${streak} days! Keep going!`); 
-};
-
-// Timer button
-document.getElementById('resetTimerBtn').onclick = () => {
-    let hours = prompt("Enter hours until exam:", "12");
-    if (hours && !isNaN(parseInt(hours))) {
-        examTime = new Date().getTime() + (parseInt(hours) * 60 * 60 * 1000);
-        startTimer();
-        alert(`Timer set to ${hours} hours from now!`);
-    }
-};
-
-// Upload triggers
-document.getElementById('notesZone').onclick = () => document.getElementById('notesInput').click();
-document.getElementById('papersZone').onclick = () => document.getElementById('papersInput').click();
-document.getElementById('notesInput').onchange = (e) => addNotes(Array.from(e.target.files));
-document.getElementById('papersInput').onchange = (e) => addPapers(Array.from(e.target.files));
-
-// Initialize
-checkLogin();
-startTimer();
-</script>
-
-</body>
-</html>
+    showAlert(`✅ Added ${files
