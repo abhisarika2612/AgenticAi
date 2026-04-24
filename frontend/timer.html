@@ -1,0 +1,22 @@
+<!-- Add this div where you want the timer to appear -->
+<div id="timerContainer"></div>
+
+<!-- Add this script at the bottom of your body -->
+<script src="timer.js"></script>
+<script>
+    // Initialize timer
+    const timer = new ExamTimer({
+        storageKey: 'lm_timer',
+        defaultHours: 12,
+        onUpdate: (formatted) => {
+            // Optional: Update custom display
+            console.log('Timer:', formatted);
+        },
+        onExpire: () => {
+            alert('Time is up! Good luck with your exam! 🎯');
+        }
+    });
+    
+    // Create UI widget (optional)
+    const ui = new TimerUI('timerContainer', timer);
+</script>
