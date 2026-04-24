@@ -1,0 +1,30 @@
+# LastMinute AI — Python dependencies
+# Install: pip install -r requirements.txt
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# Pydantic settings (for config.py)
+pydantic-settings==2.4.0
+
+# Anthropic Claude SDK
+anthropic==0.34.2
+
+# OpenAI SDK (for embeddings — optional)
+openai==1.45.0
+
+# Document parsing
+PyMuPDF==1.24.10          # PDF parsing (fitz)
+python-docx==1.1.2        # DOCX parsing
+Pillow==10.4.0             # Image processing
+pytesseract==0.3.13        # OCR for handwritten notes
+
+# Vector store
+chromadb==0.5.15
+
+# Database
+aiosqlite==0.20.0
+
+# Utilities
+python-multipart==0.0.9   # File upload support for FastAPI
