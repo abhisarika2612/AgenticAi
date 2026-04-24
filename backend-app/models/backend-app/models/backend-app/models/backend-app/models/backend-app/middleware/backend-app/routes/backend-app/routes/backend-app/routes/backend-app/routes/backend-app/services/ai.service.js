@@ -1,6 +1,45 @@
 // HANDLES GENERATING AI ANSWERS
+const Groq = require('groq-sdk');
 
-function getAIAnswer(question, documents) {
+// Initialize Groq client (reads API key from .env file)
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY
+});
+
+// REAL AI function using Groq API
+async function getRealAIAnswer(question, documents) {
+    try {
+        // Combine all document texts
+        const context = documents.map(doc => doc.extractedText || doc.name).join('\n\n');
+        
+        const completion = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a helpful tutor. Answer questions based ONLY on this study material. If the answer isn't in the material, say so politely:\n\n${context}`
+                },
+                {
+                    role: "user",
+                    content: question
+                }
+            ],
+            model: "llama-3.1-8b-instant",
+            temperature: 0.7,
+        });
+        
+        return {
+            text: completion.choices[0]?.message?.content || "Sorry, I couldn't generate an answer.",
+            source: "🤖 AI based on your uploaded materials",
+            confidence: 90
+        };
+    } catch (error) {
+        console.error('Groq API error:', error);
+        return null; // Fallback to mock answer
+    }
+}
+
+// Original mock function (kept as fallback)
+function getMockAnswer(question, documents) {
   // Check if user has uploaded any documents
   if (documents.length === 0) {
     return {
@@ -36,6 +75,29 @@ function getAIAnswer(question, documents) {
     source: `📌 Based on: ${doc.name}`,
     confidence: 85
   };
+}
+
+// Main function - tries real AI first, falls back to mock
+async function getAIAnswer(question, documents) {
+  // Check if user has uploaded any documents
+  if (documents.length === 0) {
+    return {
+      text: "⚠️ Please upload your notes or past papers first! I can only answer based on YOUR materials.",
+      source: "No documents uploaded",
+      confidence: 0
+    };
+  }
+  
+  // Try real AI if Groq API key is available
+  if (process.env.GROQ_API_KEY) {
+    const realAnswer = await getRealAIAnswer(question, documents);
+    if (realAnswer) {
+      return realAnswer;
+    }
+  }
+  
+  // Fallback to mock answer
+  return getMockAnswer(question, documents);
 }
 
 module.exports = { getAIAnswer };
