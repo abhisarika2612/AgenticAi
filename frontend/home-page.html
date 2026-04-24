@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LastMinute AI - Dashboard</title>
+    <title>LastMinute AI - home-page</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -15,7 +15,13 @@
     </style>
 </head>
 <body>
-
+<nav>
+  <a href="home-page.html">Home</a>
+  <a href="login.html">Login</a>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="profile.html">Profile</a>
+  <a href="timer.html">Timer</a>
+</nav>
 <div class="max-w-7xl mx-auto px-4 py-6">
     <!-- Header -->
     <div class="flex flex-wrap justify-between items-start mb-6 gap-4">
@@ -188,6 +194,12 @@
 </div>
 
 <script>
+// ========== BACKEND CONNECTION (CHANGED FOR 2 LAPTOPS) ==========
+// CHANGE THIS IP TO YOUR BACKEND LAPTOP'S IP ADDRESS
+const API_URL = 'http://localhost:5000/api';  // ← CHANGE 'localhost' to backend laptop IP
+let authToken = localStorage.getItem('authToken');
+let currentUser = null;
+
 // Timer
 let examTime = null;
 let timerInterval = null;
@@ -219,7 +231,7 @@ function startTimer() {
 let uploadedNotes = [];
 let uploadedPapers = [];
 let topicProgress = {};
-let streak = parseInt(localStorage.getItem('streak') || '0');
+let streak = 0;
 
 // Helper Functions
 function extractTopics(filename) {
@@ -231,10 +243,76 @@ function extractTopics(filename) {
     return ['General Studies'];
 }
 
-function getAIAnswer(question) {
+// ========== BACKEND API CALLS (CHANGED) ==========
+async function loadUserData() {
+    if (!authToken) return;
+    
+    try {
+        const response = await fetch(`${API_URL}/user/data`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            uploadedNotes = data.data.uploadedNotes || [];
+            uploadedPapers = data.data.uploadedPapers || [];
+            topicProgress = data.data.topicProgress || {};
+            streak = data.data.streak || 0;
+            refreshUI();
+        }
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        // Fallback to localStorage if backend not available
+        loadSavedData();
+    }
+}
+
+async function getAIAnswer(question) {
+    if (!authToken) {
+        return { 
+            text: "⚠️ Please login first!", 
+            source: "Authentication required", 
+            confidence: 0 
+        };
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/doubt/ask`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ question })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            return {
+                text: data.answer,
+                source: data.source,
+                confidence: data.confidence
+            };
+        } else {
+            return {
+                text: "⚠️ Error: " + data.message,
+                source: "API Error",
+                confidence: 0
+            };
+        }
+    } catch (error) {
+        console.error('Error asking question:', error);
+        // Fallback to mock response if backend not available
+        return getMockAnswer(question);
+    }
+}
+
+// Mock fallback when backend is not available
+function getMockAnswer(question) {
     if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
         return { 
-            text: "⚠️ No study materials found! Please upload your notes or past papers first. I can only answer questions based on YOUR specific syllabus and materials.", 
+            text: "⚠️ No study materials found! Please upload your notes or past papers first.", 
             source: "No documents uploaded", 
             confidence: 0 
         };
@@ -245,19 +323,65 @@ function getAIAnswer(question) {
     let answer = "";
     
     if (question.toLowerCase().includes('hess') || question.toLowerCase().includes('enthalpy')) {
-        answer = "📖 From your Chemistry notes:\n\nHess's Law states that the total enthalpy change of a reaction is independent of the pathway taken.\n\nFormula: ΔH°rxn = Σ ΔH°f(products) - Σ ΔH°f(reactants)\n\nThis means you can calculate the heat change of a reaction by adding up the formation enthalpies of products and subtracting reactants.";
+        answer = "📖 From your Chemistry notes:\n\nHess's Law states that the total enthalpy change of a reaction is independent of the pathway taken.\n\nFormula: ΔH°rxn = Σ ΔH°f(products) - Σ ΔH°f(reactants)";
     } 
     else if (question.toLowerCase().includes('calculus') || question.toLowerCase().includes('derivative')) {
-        answer = "📖 From your Mathematics notes:\n\nThe derivative represents the instantaneous rate of change.\n\nBasic rules:\n• d/dx[x^n] = n·x^(n-1)\n• d/dx[sin x] = cos x\n• d/dx[e^x] = e^x\n\nExample: If f(x) = 3x², then f'(x) = 6x.";
+        answer = "📖 From your Mathematics notes:\n\nThe derivative represents the instantaneous rate of change.\n\nBasic rules:\n• d/dx[x^n] = n·x^(n-1)\n• d/dx[sin x] = cos x\n• d/dx[e^x] = e^x";
     }
     else if (question.toLowerCase().includes('newton') || question.toLowerCase().includes('force')) {
-        answer = "📖 From your Physics notes:\n\nNewton's Laws of Motion:\n\n1st Law: An object remains at rest or uniform motion unless acted by external force.\n2nd Law: F = ma (Force = mass × acceleration)\n3rd Law: Every action has an equal and opposite reaction.";
+        answer = "📖 From your Physics notes:\n\nNewton's Laws of Motion:\n\n1st Law: Inertia\n2nd Law: F = ma\n3rd Law: Action-Reaction";
     }
     else {
-        answer = `📖 From "${doc.name}":\n\nBased on your study materials, the key concepts related to your question are covered in detail. Your notes emphasize understanding core principles and applying them to practice problems. Review section on ${doc.topics.join(', ')} for complete understanding.`;
+        answer = `📖 From "${doc.name}":\n\nBased on your study materials, review the section on ${doc.topics.join(', ')} for this concept.`;
     }
     
     return { text: answer, source: `📌 Grounded in: ${doc.name}`, confidence: 87 };
+}
+
+async function uploadFiles(type, files) {
+    if (!authToken) {
+        alert('Please login first!');
+        return;
+    }
+    
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files', file);
+    }
+    
+    try {
+        const endpoint = type === 'notes' ? '/files/notes' : '/files/papers';
+        const response = await fetch(`${API_URL}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` },
+            body: formData
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+            await loadUserData(); // Reload all data
+            alert(`${files.length} file(s) uploaded successfully!`);
+        } else {
+            alert('Upload failed: ' + data.message);
+        }
+    } catch (error) {
+        console.error('Upload error:', error);
+        // Fallback to localStorage
+        if (type === 'notes') {
+            for (let f of files) {
+                let topics = extractTopics(f.name);
+                uploadedNotes.push({ name: f.name, topics: topics });
+                topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
+            }
+        } else {
+            for (let f of files) {
+                let topics = extractTopics(f.name);
+                uploadedPapers.push({ name: f.name, topics: topics });
+                topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
+            }
+        }
+        refreshUI();
+    }
 }
 
 function refreshUI() {
@@ -304,7 +428,7 @@ function refreshUI() {
         }).join('') + '</div>';
     }
     
-    // Save to localStorage
+    // Save to localStorage as backup
     localStorage.setItem('uploadedNotes', JSON.stringify(uploadedNotes));
     localStorage.setItem('uploadedPapers', JSON.stringify(uploadedPapers));
     localStorage.setItem('topicProgress', JSON.stringify(topicProgress));
@@ -313,24 +437,14 @@ function refreshUI() {
 
 // File handlers
 async function addNotes(files) {
-    for (let f of files) {
-        let topics = extractTopics(f.name);
-        uploadedNotes.push({ name: f.name, topics: topics });
-        topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
-    }
-    refreshUI();
+    await uploadFiles('notes', files);
 }
 
 async function addPapers(files) {
-    for (let f of files) {
-        let topics = extractTopics(f.name);
-        uploadedPapers.push({ name: f.name, topics: topics });
-        topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
-    }
-    refreshUI();
+    await uploadFiles('papers', files);
 }
 
-// Load saved data
+// Load saved data from localStorage (fallback)
 function loadSavedData() {
     let savedNotes = localStorage.getItem('uploadedNotes');
     let savedPapers = localStorage.getItem('uploadedPapers');
@@ -345,22 +459,32 @@ function loadSavedData() {
     refreshUI();
 }
 
+// Check if user is logged in (simple check for demo)
+function checkLogin() {
+    // For demo purposes, auto-create a demo user
+    if (!authToken) {
+        authToken = 'demo_token_' + Date.now();
+        localStorage.setItem('authToken', authToken);
+        currentUser = { id: 'demo', loginId: 'demo@student.com' };
+    }
+    loadUserData();
+}
+
 // Event Handlers
-document.getElementById('askBtn').onclick = () => {
+document.getElementById('askBtn').onclick = async () => {
     let question = document.getElementById('questionInput').value.trim();
     if (!question) { alert('Please enter your doubt!'); return; }
     
     document.getElementById('loadingAnswer').classList.remove('hidden');
     document.getElementById('answerArea').classList.add('hidden');
     
-    setTimeout(() => {
-        let result = getAIAnswer(question);
-        document.getElementById('answerText').innerHTML = result.text.replace(/\n/g, '<br>');
-        document.getElementById('citationSource').innerHTML = result.source;
-        document.getElementById('confidenceBadge').innerHTML = `🧠 ${result.confidence}% confidence`;
-        document.getElementById('answerArea').classList.remove('hidden');
-        document.getElementById('loadingAnswer').classList.add('hidden');
-    }, 500);
+    let result = await getAIAnswer(question);
+    
+    document.getElementById('answerText').innerHTML = result.text.replace(/\n/g, '<br>');
+    document.getElementById('citationSource').innerHTML = result.source;
+    document.getElementById('confidenceBadge').innerHTML = `🧠 ${result.confidence}% confidence`;
+    document.getElementById('answerArea').classList.remove('hidden');
+    document.getElementById('loadingAnswer').classList.add('hidden');
 };
 
 document.getElementById('voiceBtn').onclick = () => {
@@ -375,26 +499,61 @@ document.getElementById('voiceBtn').onclick = () => {
     }
 };
 
-document.getElementById('genQuizBtn').onclick = () => {
+document.getElementById('genQuizBtn').onclick = async () => {
     if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
         alert('Please upload study materials first!');
         return;
     }
-    document.getElementById('quizQuestion').innerHTML = '❓ Based on your materials: Explain a key concept from your notes and how it applies to exam questions.';
+    
+    try {
+        const response = await fetch(`${API_URL}/doubt/generate-quiz`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('quizQuestion').innerHTML = '❓ ' + data.question;
+        } else {
+            document.getElementById('quizQuestion').innerHTML = '❓ Based on your materials: Explain a key concept from your notes.';
+        }
+    } catch (error) {
+        document.getElementById('quizQuestion').innerHTML = '❓ Based on your materials: Explain a key concept from your notes.';
+    }
+    
     document.getElementById('quizArea').classList.remove('hidden');
 };
 
-document.getElementById('evaluateQuizBtn').onclick = () => {
+document.getElementById('evaluateQuizBtn').onclick = async () => {
     let answer = document.getElementById('quizAnswer').value.trim();
     if (!answer) { alert('Please provide an answer'); return; }
     
-    let feedback = '✅ Great attempt! ';
-    if (answer.length > 30) {
-        feedback += 'Your answer shows good understanding. Compare with your notes for completeness.';
-    } else {
-        feedback += 'Try to write more detailed answers. Review your notes for key points.';
+    try {
+        const response = await fetch(`${API_URL}/doubt/evaluate-quiz`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ answer })
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('quizFeedback').innerHTML = data.feedback;
+        } else {
+            document.getElementById('quizFeedback').innerHTML = '✅ Great attempt! Keep practicing!';
+        }
+    } catch (error) {
+        let feedback = '✅ Great attempt! ';
+        if (answer.length > 30) {
+            feedback += 'Your answer shows good understanding.';
+        } else {
+            feedback += 'Try to write more detailed answers.';
+        }
+        document.getElementById('quizFeedback').innerHTML = feedback;
     }
-    document.getElementById('quizFeedback').innerHTML = feedback;
+    
     document.getElementById('quizFeedback').classList.remove('hidden');
     
     // Update progress
@@ -408,9 +567,20 @@ document.getElementById('evaluateQuizBtn').onclick = () => {
 };
 
 document.getElementById('refreshMapBtn').onclick = () => refreshUI();
-document.getElementById('streakBtn').onclick = () => { 
+document.getElementById('streakBtn').onclick = async () => { 
     streak++; 
-    refreshUI(); 
+    refreshUI();
+    
+    // Try to save to backend
+    if (authToken) {
+        try {
+            await fetch(`${API_URL}/user/streak`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+        } catch(e) {}
+    }
+    
     alert(`🔥 Study streak: ${streak} days! Keep going!`); 
 };
 
@@ -431,7 +601,7 @@ document.getElementById('notesInput').onchange = (e) => addNotes(Array.from(e.ta
 document.getElementById('papersInput').onchange = (e) => addPapers(Array.from(e.target.files));
 
 // Initialize
-loadSavedData();
+checkLogin();
 startTimer();
 </script>
 
