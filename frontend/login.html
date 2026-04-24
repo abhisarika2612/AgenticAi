@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LastMinute AI - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: linear-gradient(135deg, #f5f7fc 0%, #eef2f9 100%); min-height: 100vh; }
+        .glass-card-dark { background: rgba(255,255,255,0.95); border-radius: 1.5rem; }
+        .login-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            bottom: 0; 
+            background: linear-gradient(135deg, rgba(99,102,241,0.96), rgba(139,92,246,0.96)); 
+            z-index: 1000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+        }
+        .error-border { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE ONLY -->
+<div class="login-overlay">
+    <div class="glass-card-dark rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl">
+        <div class="text-center mb-6">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-600 p-3 rounded-2xl inline-block shadow-lg mb-3">
+                <i class="fas fa-bolt text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">LastMinute AI</h2>
+            <p class="text-gray-500 text-sm mt-1">Sign in to resolve doubts instantly</p>
+        </div>
+        
+        <div class="space-y-4">
+            <!-- Toggle Buttons -->
+            <div class="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                <button id="emailTabBtn" class="flex-1 py-2 rounded-lg text-sm font-medium bg-white shadow-sm text-indigo-600">📧 Email</button>
+                <button id="mobileTabBtn" class="flex-1 py-2 rounded-lg text-sm font-medium text-gray-600">📱 Mobile</button>
+            </div>
+            
+            <!-- Email Input Group -->
+            <div id="emailInputGroup">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input type="email" id="loginEmail" placeholder="student@example.com" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-300">
+                <div id="emailError" class="text-red-500 text-xs mt-1 hidden"></div>
+            </div>
+            
+            <!-- Mobile Input Group (hidden initially) -->
+            <div id="mobileInputGroup" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                <input type="tel" id="loginMobile" placeholder="9876543210" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-300">
+                <div id="mobileError" class="text-red-500 text-xs mt-1 hidden"></div>
+                <p class="text-xs text-gray-400 mt-1">Enter 10-digit number (e.g., 9876543210)</p>
+            </div>
+            
+            <!-- Login Button -->
+            <button id="loginBtn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition">
+                <i class="fas fa-arrow-right-to-bracket"></i> Continue
+            </button>
+            
+            <p class="text-xs text-center text-gray-400">Demo: Enter any email or 10-digit mobile number</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Validation Functions
+function isValidEmail(email) {
+    if (!email || email.trim() === '') return { valid: false, msg: 'Email cannot be empty!' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { valid: false, msg: 'Enter valid email (e.g., name@domain.com)' };
+    return { valid: true };
+}
+
+function isValidMobile(mobile) {
+    if (!mobile || mobile.trim() === '') return { valid: false, msg: 'Mobile number cannot be empty!' };
+    let clean = mobile.replace(/\s/g, '').replace(/^\+91/, '');
+    if (!/^\d+$/.test(clean)) return { valid: false, msg: 'Use only numbers 0-9!' };
+    if (clean.length !== 10) return { valid: false, msg: 'Mobile number must be exactly 10 digits!' };
+    if (!/^[6-9]/.test(clean)) return { valid: false, msg: 'Mobile number must start with 6, 7, 8, or 9!' };
+    return { valid: true, value: clean };
+}
+
+// Clear error styles
+function clearErrors() {
+    const emailInput = document.getElementById('loginEmail');
+    const mobileInput = document.getElementById('loginMobile');
+    const emailError = document.getElementById('emailError');
+    const mobileError = document.getElementById('mobileError');
+    
+    if (emailInput) emailInput.classList.remove('error-border');
+    if (mobileInput) mobileInput.classList.remove('error-border');
+    if (emailError) emailError.classList.add('hidden');
+    if (mobileError) mobileError.classList.add('hidden');
+}
+
+function showEmailError(message) {
+    const emailInput = document.getElementById('loginEmail');
+    const emailError = document.getElementById('emailError');
+    emailInput.classList.add('error-border');
+    emailError.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+    emailError.classList.remove('hidden');
+}
+
+function showMobileError(message) {
+    const mobileInput = document.getElementById('loginMobile');
+    const mobileError = document.getElementById('mobileError');
+    mobileInput.classList.add('error-border');
+    mobileError.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+    mobileError.classList.remove('hidden');
+}
+
+// Toggle between Email and Mobile
+let loginType = 'email';
+const emailGroup = document.getElementById('emailInputGroup');
+const mobileGroup = document.getElementById('mobileInputGroup');
+const emailTab = document.getElementById('emailTabBtn');
+const mobileTab = document.getElementById('mobileTabBtn');
+
+emailTab.onclick = () => {
+    loginType = 'email';
+    emailGroup.classList.remove('hidden');
+    mobileGroup.classList.add('hidden');
+    emailTab.classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
+    mobileTab.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
+    clearErrors();
+};
+
+mobileTab.onclick = () => {
+    loginType = 'mobile';
+    emailGroup.classList.add('hidden');
+    mobileGroup.classList.remove('hidden');
+    mobileTab.classList.add('bg-white', 'shadow-sm', 'text-indigo-600');
+    emailTab.classList.remove('bg-white', 'shadow-sm', 'text-indigo-600');
+    clearErrors();
+};
+
+// Login Button Handler
+document.getElementById('loginBtn').onclick = () => {
+    clearErrors();
+    
+    if (loginType === 'email') {
+        const email = document.getElementById('loginEmail').value;
+        const result = isValidEmail(email);
+        
+        if (!result.valid) {
+            showEmailError(result.msg);
+            alert(result.msg);
+            return;
+        }
+        
+        // Login successful - save to localStorage
+        const userData = { type: 'email', value: email };
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        
+        alert(`✅ Welcome ${email}! Redirecting to dashboard...`);
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
+        
+    } else {
+        const mobile = document.getElementById('loginMobile').value;
+        const result = isValidMobile(mobile);
+        
+        if (!result.valid) {
+            showMobileError(result.msg);
+            alert(result.msg);
+            return;
+        }
+        
+        // Login successful - save to localStorage
+        const userData = { type: 'mobile', value: result.value };
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        
+        alert(`✅ Welcome! You have logged in with mobile: ${result.value}`);
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
+    }
+};
+
+// Auto-redirect if already logged in (optional - uncomment to use)
+// if (localStorage.getItem('currentUser')) {
+//     window.location.href = 'dashboard.html';
+// }
+</script>
+
+</body>
+</html>
