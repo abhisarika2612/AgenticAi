@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LastMinute AI - Smart Exam Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: linear-gradient(135deg, #f5f7fc 0%, #eef2f9 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); border-radius: 1rem; }
+        .glass-card-dark { background: rgba(255,255,255,0.95); border-radius: 1.5rem; }
+        .login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(135deg, rgba(99,102,241,0.96), rgba(139,92,246,0.96)); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+        .nav-tab { transition: all 0.2s ease; cursor: pointer; padding: 0.5rem 1.25rem; border-radius: 0.75rem; }
+        .nav-tab.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; }
+        .profile-avatar { transition: all 0.2s ease; cursor: pointer; display: inline-block; margin: 0 0.25rem; }
+        .profile-avatar.selected img { border: 3px solid #6366f1; transform: scale(1.05); }
+        .profile-avatar img { transition: all 0.2s ease; width: 70px; height: 70px; border-radius: 50%; cursor: pointer; }
+        #appContainer { display: none; }
+        .timer-display { font-family: monospace; font-size: 1.3rem; font-weight: bold; }
+        .alert-toast { position: fixed; top: 20px; right: 20px; z-index: 2000; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginModal" class="login-overlay">
+    <div class="glass-card-dark rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl">
+        <div class="text-center mb-6">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-600 p-3 rounded-2xl inline-block shadow-lg mb-3">
+                <i class="fas fa-bolt text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent">LastMinute AI</h2>
+            <p class="text-gray-500 text-sm mt-1">Sign in to resolve doubts instantly</p>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="flex gap-2 bg-gray-100 p-1 rounded-xl">
+                <button id="emailTabBtn" class="flex-1 py-2 rounded-lg text-sm font-medium bg-white shadow-sm text-indigo-600">📧 Email</button>
+                <button id="mobileTabBtn" class="flex-1 py-2 rounded-lg text-sm font-medium text-gray-600">📱 Mobile</button>
+            </div>
+            
+            <div id="emailInputGroup">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input type="email" id="loginEmail" placeholder="student@example.com" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-300">
+            </div>
+            
+            <div id="mobileInputGroup" class="hidden">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                <input type="tel" id="loginMobile" placeholder="9876543210" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-indigo-300">
+                <p class="text-xs text-gray-400 mt-1">Enter 10-digit number</p>
+            </div>
+            
+            <button id="loginBtn" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg transition">
+                <i class="fas fa-arrow-right-to-bracket"></i> Continue
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appContainer" class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-wrap justify-between items-start mb-6 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-600 p-2.5 rounded-2xl shadow-lg">
+                <i class="fas fa-bolt text-white text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-extrabold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600 bg-clip-text text-transparent">LastMinute AI</h1>
+                <p class="text-gray-500 text-sm">AI-powered doubt resolver • grounded in YOUR notes</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="bg-white/70 rounded-full px-4 py-2 shadow-sm flex items-center gap-2">
+                <i class="fas fa-hourglass-half text-indigo-500"></i>
+                <span class="text-sm font-medium">Exam in:</span>
+                <span class="text-xl font-bold text-indigo-700 timer-display" id="countdownTimer">--:--:--</span>
+            </div>
+            <button id="logoutBtn" class="bg-gray-100 hover:bg-red-100 text-gray-700 px-3 py-2 rounded-full transition">
+                <i class="fas fa-sign-out-alt"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-3 mb-6 border-b pb-2 flex-wrap">
+        <button id="dashboardTab" class="nav-tab active"><i class="fas fa-home"></i> Dashboard</button>
+        <button id="smartCornerTab" class="nav-tab"><i class="fas fa-brain"></i> Smart Corner</button>
+        <button id="historyTab" class="nav-tab"><i class="fas fa-history"></i> History</button>
+        <button id="accountTab" class="nav-tab"><i class="fas fa-user-circle"></i> Account</button>
+    </div>
+
+    <!-- DASHBOARD PAGE -->
+    <div id="dashboardPage">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Upload Section -->
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl mb-4"><i class="fas fa-upload text-indigo-500"></i> Your Study Materials</h2>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div id="notesZone" class="border-2 border-dashed border-indigo-300 rounded-xl p-4 text-center cursor-pointer hover:bg-indigo-50">
+                            <i class="fas fa-book-open text-indigo-400 text-3xl mb-2"></i>
+                            <p>📄 Upload Notes</p>
+                            <input type="file" id="notesInput" multiple accept=".pdf,.jpg,.png" class="hidden">
+                        </div>
+                        <div id="papersZone" class="border-2 border-dashed border-purple-300 rounded-xl p-4 text-center cursor-pointer hover:bg-purple-50">
+                            <i class="fas fa-scroll text-purple-400 text-3xl mb-2"></i>
+                            <p>📝 Past Papers</p>
+                            <input type="file" id="papersInput" multiple accept=".pdf,.jpg,.png" class="hidden">
+                        </div>
+                        <div id="universityZone" class="border-2 border-dashed border-emerald-300 rounded-xl p-4 text-center cursor-pointer hover:bg-emerald-50">
+                            <i class="fas fa-university text-emerald-400 text-3xl mb-2"></i>
+                            <p>🏛️ University Papers</p>
+                            <input type="file" id="universityInput" multiple accept=".pdf,.jpg,.png" class="hidden">
+                        </div>
+                    </div>
+                    <div id="fileList" class="mt-3 text-xs flex flex-wrap gap-1"></div>
+                    <div class="flex justify-between mt-3 text-xs text-gray-400">
+                        <span>📚 Notes: <span id="notesCount">0</span></span>
+                        <span>📋 Papers: <span id="papersCount">0</span></span>
+                        <span>🏛️ University: <span id="universityCount">0</span></span>
+                    </div>
+                </div>
+
+                <!-- Ask Doubt -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-bold text-xl"><i class="fas fa-question-circle text-amber-500"></i> Ask Your Doubt</h2>
+                        <button id="voiceBtn" class="bg-gray-100 hover:bg-indigo-100 p-2 rounded-full"><i class="fas fa-microphone text-indigo-600"></i></button>
+                    </div>
+                    <textarea id="questionInput" rows="2" class="w-full border rounded-xl p-3 focus:ring-2 focus:ring-indigo-300" placeholder='Example: "Explain Newton's Second Law" or "What is Hess's Law?"'></textarea>
+                    <button id="askBtn" class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-xl w-full hover:bg-indigo-700">Get Answer</button>
+                    <div id="answerArea" class="mt-4 p-4 bg-indigo-50 rounded-xl hidden">
+                        <div class="flex justify-between"><span class="font-semibold text-indigo-800">AI Answer</span><span id="confidenceBadge" class="bg-white px-2 py-1 rounded-full text-xs"></span></div>
+                        <div id="answerText" class="mt-2 text-gray-700 text-sm"></div>
+                        <div id="citationSource" class="mt-2 text-xs text-gray-400 border-t pt-2"></div>
+                    </div>
+                    <div id="loadingAnswer" class="hidden mt-3 text-center text-indigo-600">⏳ Searching your notes...</div>
+                </div>
+
+                <!-- Quiz -->
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl mb-3"><i class="fas fa-puzzle-piece text-purple-500"></i> Topic Quiz</h2>
+                    <p id="quizQuestion" class="text-gray-600 mb-3">Upload materials to generate practice questions!</p>
+                    <button id="genQuizBtn" class="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700">Generate Quiz</button>
+                    <div id="quizArea" class="mt-4 hidden">
+                        <textarea id="quizAnswer" rows="2" class="w-full border rounded-lg p-2" placeholder="Type your answer..."></textarea>
+                        <button id="evaluateQuizBtn" class="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg">Evaluate</button>
+                        <div id="quizFeedback" class="mt-3 text-sm p-3 bg-gray-50 rounded-lg hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl mb-3"><i class="fas fa-chart-line text-emerald-500"></i> Exam Readiness</h2>
+                    <div>Confidence Score: <span id="overallScore" class="font-bold text-indigo-600">0%</span></div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 mt-1"><div id="progressFill" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-3 rounded-full w-0"></div></div>
+                </div>
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl"><i class="fas fa-project-diagram text-cyan-600"></i> Topics Covered</h2>
+                    <div id="mindmap" class="mt-3 text-center text-gray-400">Upload notes to see topics</div>
+                </div>
+                <div class="glass-card p-4 flex justify-between items-center">
+                    <div><i class="fas fa-fire text-pink-500 text-xl"></i> Study Streak: <span id="streakValue" class="font-bold text-2xl">0</span></div>
+                    <button id="streakBtn" class="bg-pink-100 hover:bg-pink-200 px-4 py-2 rounded-full"><i class="fas fa-plus"></i> Log Day</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SMART CORNER PAGE -->
+    <div id="smartCornerPage" class="hidden">
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold"><i class="fas fa-brain text-indigo-500"></i> Smart Corner - AI Predicted Tests</h2>
+                <button id="generateTestBtn" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2 rounded-xl font-semibold hover:shadow-lg">
+                    <i class="fas fa-magic"></i> Generate New Test
+                </button>
+            </div>
+            
+            <div class="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-xl mb-6 border border-amber-200">
+                <i class="fas fa-chart-line text-amber-600"></i>
+                <span class="font-semibold text-amber-800"> How AI Predicts Questions:</span>
+                <p class="text-sm text-amber-700 mt-1">Analyzes patterns from your uploaded university papers and past papers to predict questions with HIGHEST probability of appearing in exams!</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Number of Questions</label>
+                    <select id="testQuestionCount" class="w-full px-3 py-2 border rounded-lg">
+                        <option value="5">5 Questions</option>
+                        <option value="10" selected>10 Questions</option>
+                        <option value="15">15 Questions</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Difficulty Level</label>
+                    <select id="testDifficulty" class="w-full px-3 py-2 border rounded-lg">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="testContainer" class="hidden">
+                <div class="bg-white rounded-xl p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <span class="text-sm text-gray-500">Question <span id="currentQNum">1</span> of <span id="totalQNum">10</span></span>
+                            <div class="w-64 bg-gray-200 rounded-full h-2 mt-1">
+                                <div id="testProgress" class="bg-indigo-600 h-2 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div id="probabilityBadge" class="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-semibold">🎯 0% Probability</div>
+                    </div>
+                    
+                    <p id="questionText" class="text-lg font-semibold text-gray-800 mb-4"></p>
+                    <textarea id="answerInput" rows="4" class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-indigo-300 mb-4" placeholder="Type your answer here..."></textarea>
+                    
+                    <div class="flex justify-between gap-3">
+                        <button id="prevBtn" class="px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50" disabled>← Previous</button>
+                        <button id="nextBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Next →</button>
+                        <button id="submitTestBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 hidden">Submit Test</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="resultsContainer" class="hidden bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6">
+                <h3 class="text-2xl font-bold mb-4">📊 Test Results</h3>
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-lg text-center">
+                        <p class="text-gray-500">Final Score</p>
+                        <p class="text-3xl font-bold text-indigo-600" id="finalScore">0%</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center">
+                        <p class="text-gray-500">Correct Answers</p>
+                        <p class="text-3xl font-bold text-green-600" id="correctCount">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg text-center">
+                        <p class="text-gray-500">AI Prediction Accuracy</p>
+                        <p class="text-3xl font-bold text-amber-600" id="aiAccuracy">92%</p>
+                    </div>
+                </div>
+                <div id="detailedResults" class="space-y-3 max-h-96 overflow-y-auto"></div>
+                <button id="retakeBtn" class="mt-4 w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700">Retake Smart Test</button>
+            </div>
+
+            <div id="noPapersWarning" class="hidden text-center py-12">
+                <i class="fas fa-exclamation-triangle text-6xl text-amber-400 mb-4"></i>
+                <p class="text-gray-600 font-semibold">No University Papers Found!</p>
+                <p class="text-sm text-gray-500 mt-2">Please upload University Previous Year Papers in the Dashboard first.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY PAGE -->
+    <div id="historyPage" class="hidden">
+        <div class="glass-card p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold"><i class="fas fa-history text-indigo-500"></i> Question History</h2>
+                <button id="clearHistoryBtn" class="text-red-500 text-sm bg-red-50 px-3 py-1 rounded-lg hover:bg-red-100">Clear All</button>
+            </div>
+            <div id="historyList" class="space-y-3 max-h-[500px] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- ACCOUNT PAGE -->
+    <div id="accountPage" class="hidden">
+        <div class="glass-card p-6 max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold mb-6"><i class="fas fa-user-circle text-indigo-500"></i> My Account</h2>
+            <div class="mb-6">
+                <label class="block font-semibold mb-3">Profile Avatar</label>
+                <div class="flex flex-wrap gap-3 justify-center" id="avatarContainer">
+                    <div class="profile-avatar" data-avatar="1"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A1"></div>
+                    <div class="profile-avatar" data-avatar="2"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A2"></div>
+                    <div class="profile-avatar" data-avatar="3"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A3"></div>
+                    <div class="profile-avatar" data-avatar="4"><img src="https://api.dicebear.com/7.x/avataaars/svg?seed=A4"></div>
+                </div>
+            </div>
+            <div class="space-y-4">
+                <div><label class="font-semibold">Full Name</label><input type="text" id="fullName" class="w-full px-4 py-2 rounded-xl border mt-1" placeholder="Enter your name"></div>
+                <div><label class="font-semibold">Grade/Year</label><select id="grade" class="w-full px-4 py-2 rounded-xl border mt-1"><option>10th Grade</option><option>11th Grade</option><option>12th Grade</option><option>University 1st Year</option><option>University 2nd Year</option></select></div>
+                <div><label class="font-semibold">Login ID</label><input type="text" id="loginIdDisplay" readonly class="w-full px-4 py-2 rounded-xl border bg-gray-50 mt-1"></div>
+            </div>
+            <div class="mt-6 flex gap-3">
+                <button id="saveAccountBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-xl hover:bg-indigo-700">Save Changes</button>
+                <button id="resetAccountBtn" class="bg-gray-200 px-6 py-2 rounded-xl hover:bg-gray-300">Reset</button>
+            </div>
+            <div id="saveMsg" class="mt-3 text-sm text-green-600 hidden"></div>
+        </div>
+    </div>
+
+    <div class="mt-8 text-center text-gray-400 text-sm border-t pt-5 italic">"Google searches the web. We search your brain — and give you back only what matters."</div>
+</div>
+
+<script>
+// ========== APP STATE ==========
+let currentUser = null;
+let searchHistory = [];
+let uploadedNotes = [];
+let uploadedPapers = [];
+let uploadedUniversity = [];
+let streak = 0;
+let userProfile = { avatar: '1', name: '', grade: '12th Grade' };
+let examTime = null;
+let timerInterval = null;
+
+// ========== TIMER FUNCTIONS ==========
+function updateTimerDisplay() {
+    if (!examTime) {
+        let d = new Date();
+        d.setHours(d.getHours() + 12);
+        examTime = d.getTime();
+    }
+    let diff = examTime - new Date().getTime();
+    if (diff < 0) {
+        document.getElementById('countdownTimer').innerHTML = "00:00:00";
+        return;
+    }
+    let h = Math.floor(diff / 3600000);
+    let m = Math.floor((diff % 3600000) / 60000);
+    let s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('countdownTimer').innerHTML = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    updateTimerDisplay();
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+// ========== SYLLABUS VALIDATION (Feature 1) ==========
+const allowedTopics = ['physics', 'chemistry', 'math', 'biology', 'calculus', 'algebra', 'newton', 'hess', 'thermodynamics', 'kinematics', 'optics', 'electricity', 'magnetism', 'dna', 'cell', 'photosynthesis'];
+const bannedWords = ['hack', 'cheat', 'illegal', 'violence', 'abuse', 'porn', 'sex', 'drug', 'weapon'];
+
+function showAlert(message, type = 'warning') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert-toast ${type === 'error' ? 'bg-red-500' : 'bg-amber-500'} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2`;
+    alertDiv.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle'}"></i> ${message}`;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+
+function isOutOfSyllabus(question) {
+    const lowerQ = question.toLowerCase();
+    
+    // Check for inappropriate content
+    for (let word of bannedWords) {
+        if (lowerQ.includes(word)) {
+            return { out: true, reason: "❌ Question violates content guidelines! Please ask academic questions only." };
+        }
+    }
+    
+    // Check if question is related to syllabus topics
+    let hasTopic = false;
+    for (let topic of allowedTopics) {
+        if (lowerQ.includes(topic)) {
+            hasTopic = true;
+            break;
+        }
+    }
+    
+    // If no notes uploaded and question is off-topic
+    if (!hasTopic && uploadedNotes.length === 0 && uploadedPapers.length === 0) {
+        return { out: true, reason: "⚠️ This question appears out of syllabus. Please upload your course materials first. Suggested topics: Physics, Chemistry, Mathematics, Biology" };
+    }
+    
+    // If has notes but question doesn't match
+    if (!hasTopic && (uploadedNotes.length > 0 || uploadedPapers.length > 0)) {
+        let userTopics = [];
+        [...uploadedNotes, ...uploadedPapers].forEach(doc => {
+            let name = doc.name.toLowerCase();
+            if (name.includes('physics')) userTopics.push('Physics');
+            else if (name.includes('chem')) userTopics.push('Chemistry');
+            else if (name.includes('math')) userTopics.push('Math');
+            else if (name.includes('bio')) userTopics.push('Biology');
+        });
+        if (userTopics.length > 0) {
+            return { out: true, reason: `📚 Your question seems outside your uploaded materials. Your topics: ${userTopics.join(', ')}. Please ask questions related to these subjects.` };
+        }
+    }
+    
+    return { out: false };
+}
+
+// ========== STORAGE FUNCTIONS ==========
+function saveAllData() {
+    if (!currentUser) return;
+    localStorage.setItem(`lm_${currentUser.value}`, JSON.stringify({
+        searchHistory, uploadedNotes, uploadedPapers, uploadedUniversity, streak, userProfile
+    }));
+}
+
+function loadAllData() {
+    if (!currentUser) return;
+    let saved = localStorage.getItem(`lm_${currentUser.value}`);
+    if (saved) {
+        let data = JSON.parse(saved);
+        searchHistory = data.searchHistory || [];
+        uploadedNotes = data.uploadedNotes || [];
+        uploadedPapers = data.uploadedPapers || [];
+        uploadedUniversity = data.uploadedUniversity || [];
+        streak = data.streak || 0;
+        userProfile = data.userProfile || { avatar: '1', name: '', grade: '12th Grade' };
+    }
+    refreshUI();
+    loadProfileForm();
+}
+
+function refreshUI() {
+    // Update file counts
+    document.getElementById('notesCount').innerText = uploadedNotes.length;
+    document.getElementById('papersCount').innerText = uploadedPapers.length;
+    document.getElementById('universityCount').innerText = uploadedUniversity.length;
+    document.getElementById('streakValue').innerText = streak;
+    
+    // Update file list display
+    let fileDiv = document.getElementById('fileList');
+    fileDiv.innerHTML = '';
+    uploadedNotes.forEach(f => fileDiv.innerHTML += `<span class="bg-indigo-100 px-2 py-1 rounded text-xs">📄 ${f.name}</span>`);
+    uploadedPapers.forEach(f => fileDiv.innerHTML += `<span class="bg-purple-100 px-2 py-1 rounded text-xs">📝 ${f.name}</span>`);
+    uploadedUniversity.forEach(f => fileDiv.innerHTML += `<span class="bg-emerald-100 px-2 py-1 rounded text-xs">🏛️ ${f.name}</span>`);
+    
+    // Update confidence score
+    let total = searchHistory.length;
+    let score = Math.min(100, total * 10);
+    document.getElementById('overallScore').innerText = score + '%';
+    document.getElementById('progressFill').style.width = score + '%';
+    
+    // Update topics mindmap
+    let topics = new Set();
+    [...uploadedNotes, ...uploadedPapers, ...uploadedUniversity].forEach(doc => {
+        let name = doc.name.toLowerCase();
+        if (name.includes('physics')) topics.add('⚡ Physics');
+        else if (name.includes('chem')) topics.add('🧪 Chemistry');
+        else if (name.includes('math')) topics.add('📐 Math');
+        else if (name.includes('bio')) topics.add('🧬 Biology');
+        else topics.add('📚 General');
+    });
+    let mindDiv = document.getElementById('mindmap');
+    if (topics.size === 0) {
+        mindDiv.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Upload notes to see topics';
+    } else {
+        mindDiv.innerHTML = Array.from(topics).map(t => `<span class="inline-block bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm m-1">${t}</span>`).join('');
+    }
+}
+
+function loadProfileForm() {
+    document.getElementById('fullName').value = userProfile.name || '';
+    document.getElementById('grade').value = userProfile.grade || '12th Grade';
+    document.getElementById('loginIdDisplay').value = currentUser ? currentUser.value : '';
+    document.querySelectorAll('.profile-avatar').forEach(av => {
+        av.classList.remove('selected');
+        if (av.dataset.avatar === userProfile.avatar) av.classList.add('selected');
+    });
+}
+
+function saveProfile() {
+    userProfile.name = document.getElementById('fullName').value;
+    userProfile.grade = document.getElementById('grade').value;
+    saveAllData();
+    let msg = document.getElementById('saveMsg');
+    msg.innerHTML = '✅ Profile saved successfully!';
+    msg.classList.remove('hidden');
+    setTimeout(() => msg.classList.add('hidden'), 2000);
+}
+
+// ========== AI ANSWER FUNCTIONS ==========
+function extractTopics(filename) {
+    let name = filename.toLowerCase();
+    if (name.includes('calculus') || name.includes('math')) return 'Mathematics';
+    if (name.includes('physics')) return 'Physics';
+    if (name.includes('chem')) return 'Chemistry';
+    if (name.includes('bio')) return 'Biology';
+    return 'General Studies';
+}
+
+function getAIAnswer(question) {
+    // Check syllabus first
+    const syllabusCheck = isOutOfSyllabus(question);
+    if (syllabusCheck.out) {
+        showAlert(syllabusCheck.reason, 'error');
+        return { text: syllabusCheck.reason, source: "Syllabus Validation", confidence: 0 };
+    }
+    
+    // Check if materials exist
+    if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
+        return { text: "⚠️ Please upload your study materials first! I can only answer based on YOUR notes and past papers.", source: "No documents", confidence: 0 };
+    }
+    
+    // Generate answer from uploaded materials
+    let allDocs = [...uploadedNotes, ...uploadedPapers];
+    let doc = allDocs[0];
+    let answer = `📖 Based on "${doc.name}":\n\n`;
+    
+    const lowerQ = question.toLowerCase();
+    if (lowerQ.includes('newton')) {
+        answer += "Newton's Second Law of Motion states that Force = mass × acceleration (F = ma). This is a fundamental principle in physics.";
+    } else if (lowerQ.includes('hess')) {
+        answer += "Hess's Law states that the total enthalpy change in a chemical reaction is independent of the pathway taken. ΔH°rxn = ΣΔH°f(products) - ΣΔH°f(reactants)";
+    } else if (lowerQ.includes('calculus') || lowerQ.includes('derivative')) {
+        answer += "The derivative measures the instantaneous rate of change. The power rule: d/dx[x^n] = n·x^(n-1)";
+    } else if (lowerQ.includes('photosynthesis')) {
+        answer += "Photosynthesis is the process by which plants convert light energy into chemical energy. Equation: 6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂";
+    } else {
+        let topic = extractTopics(doc.name);
+        answer += `This question relates to ${topic}. Based on your uploaded materials, please review the section on ${lowerQ.substring(0, 50)}... for detailed explanation.`;
+    }
+    
+    return { text: answer, source: `📌 Grounded in: ${doc.name}`, confidence: 85 };
+}
+
+function addToHistory(question, answer, confidence) {
+    searchHistory.unshift({
+        id: Date.now(),
+        question: question.substring(0, 70),
+        answer: answer.substring(0, 100),
+        time: new Date().toLocaleString(),
+        confidence: confidence
+    });
+    if (searchHistory.length > 30) searchHistory.pop();
+    saveAllData();
+    renderHistory();
+}
+
+function renderHistory() {
+    let container = document.getElementById('historyList');
+    if (searchHistory.length === 0) {
+        container.innerHTML = '<div class="text-center text-gray-400 py-8"><i class="fas fa-search text-4xl mb-2"></i><p>No questions asked yet</p></div>';
+        return;
+    }
+    container.innerHTML = searchHistory.map(h => `
+        <div class="bg-white rounded-xl p-3 border hover:shadow-md transition">
+            <div class="font-semibold text-indigo-800">❓ ${h.question}</div>
+            <div class="text-xs text-gray-500 mt-1">🕐 ${h.time} | 🧠 ${h.confidence}% confidence</div>
+            <div class="text-sm text-gray-600 mt-2">${h.answer}</div>
+        </div>
+    `).join('');
+}
+
+// ========== FILE HANDLERS ==========
+async function addNotes(files) {
+    for (let f of files) {
+        uploadedNotes.push({ name: f.name, topics: extractTopics(f.name) });
+    }
+    saveAllData();
+    refreshUI();
+    showAlert(`✅ Added ${files

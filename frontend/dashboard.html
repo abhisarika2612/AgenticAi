@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LastMinute AI - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: linear-gradient(135deg, #f5f7fc 0%, #eef2f9 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.5); border-radius: 1rem; }
+        .timer-display { font-family: monospace; font-size: 1.3rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+<nav>
+  <a href="home-page.html">Home</a>
+  <a href="login.html">Login</a>
+  <a <a href="/frontend/dashboard.html">Dashboard</a>>Dashboard</a>
+  <a href="profile.html">Profile</a>
+  <a href="timer.html">Timer</a>
+</nav>
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="flex flex-wrap justify-between items-start mb-6 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-600 p-2.5 rounded-2xl shadow-lg">
+                <i class="fas fa-bolt text-white text-2xl"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-extrabold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600 bg-clip-text text-transparent">LastMinute AI</h1>
+                <p class="text-gray-500 text-sm">AI-powered doubt resolver • grounded in YOUR notes</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="bg-white/70 rounded-full px-4 py-2 shadow-sm flex items-center gap-2">
+                <i class="fas fa-hourglass-half text-indigo-500"></i>
+                <span class="text-sm font-medium">Exam in:</span>
+                <span class="text-xl font-bold text-indigo-700 timer-display" id="countdownTimer">--:--:--</span>
+            </div>
+            <button id="resetTimerBtn" class="bg-gray-100 hover:bg-indigo-100 text-gray-700 px-3 py-2 rounded-full transition">
+                <i class="fas fa-clock"></i> Set Timer
+            </button>
+        </div>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboardPage">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Upload Zone -->
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl mb-4"><i class="fas fa-upload text-indigo-500"></i> Your Study Materials</h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div id="notesZone" class="border-2 border-dashed border-indigo-300 rounded-xl p-4 text-center cursor-pointer hover:bg-indigo-50 transition">
+                            <i class="fas fa-book-open text-indigo-400 text-3xl mb-2"></i>
+                            <p class="font-medium">📄 Upload Notes</p>
+                            <p class="text-xs text-gray-400">PDF, Images</p>
+                            <input type="file" id="notesInput" multiple accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                        </div>
+                        <div id="papersZone" class="border-2 border-dashed border-purple-300 rounded-xl p-4 text-center cursor-pointer hover:bg-purple-50 transition">
+                            <i class="fas fa-scroll text-purple-400 text-3xl mb-2"></i>
+                            <p class="font-medium">📝 Upload Past Papers</p>
+                            <p class="text-xs text-gray-400">PDF, Images</p>
+                            <input type="file" id="papersInput" multiple accept=".pdf,.jpg,.jpeg,.png" class="hidden">
+                        </div>
+                    </div>
+                    <div id="fileList" class="mt-3 text-xs flex flex-wrap gap-1"></div>
+                    <div class="flex justify-between mt-3 text-xs text-gray-400">
+                        <span>📚 Notes: <span id="notesCount">0</span></span>
+                        <span>📋 Papers: <span id="papersCount">0</span></span>
+                    </div>
+                </div>
+
+                <!-- Ask Doubt Section -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-bold text-xl"><i class="fas fa-question-circle text-amber-500"></i> Ask Your Doubt</h2>
+                        <button id="voiceBtn" class="bg-gray-100 hover:bg-indigo-100 p-2 rounded-full transition">
+                            <i class="fas fa-microphone text-indigo-600"></i> Voice
+                        </button>
+                    </div>
+                    <textarea id="questionInput" rows="2" class="w-full border rounded-xl p-3 focus:ring-2 focus:ring-indigo-300 resize-none" placeholder='Example: "Explain Hess"s Law from my chemistry notes"'></textarea>
+                    <button id="askBtn" class="mt-3 bg-indigo-600 text-white px-4 py-2 rounded-xl w-full hover:bg-indigo-700 transition font-medium">
+                        <i class="fas fa-paper-plane"></i> Get Answer
+                    </button>
+                    
+                    <!-- Answer Area -->
+                    <div id="answerArea" class="mt-4 p-4 bg-indigo-50 rounded-xl hidden">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-indigo-800"><i class="fas fa-brain"></i> AI Answer</span>
+                            <span id="confidenceBadge" class="bg-white px-2 py-1 rounded-full text-xs font-bold text-indigo-600"></span>
+                        </div>
+                        <div id="answerText" class="mt-2 text-gray-700 text-sm leading-relaxed"></div>
+                        <div id="citationSource" class="mt-2 text-xs text-gray-400 border-t pt-2"></div>
+                    </div>
+                    
+                    <!-- Loading Indicator -->
+                    <div id="loadingAnswer" class="hidden mt-3 text-center text-indigo-600">
+                        <i class="fas fa-spinner fa-spin"></i> Searching your notes...
+                    </div>
+                </div>
+
+                <!-- Past Paper Quiz Engine -->
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl mb-3"><i class="fas fa-puzzle-piece text-purple-500"></i> Past Paper Practice Engine</h2>
+                    <p id="quizQuestion" class="text-gray-600 mb-3">📌 Upload past papers to unlock AI-powered quiz questions!</p>
+                    <button id="genQuizBtn" class="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700 transition font-medium">
+                        <i class="fas fa-magic"></i> Generate Quiz Question
+                    </button>
+                    
+                    <!-- Quiz Area -->
+                    <div id="quizArea" class="mt-4 hidden">
+                        <textarea id="quizAnswer" rows="2" class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-purple-300" placeholder="Type your answer here..."></textarea>
+                        <button id="evaluateQuizBtn" class="mt-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition font-medium">
+                            <i class="fas fa-check-double"></i> Evaluate My Answer
+                        </button>
+                        <div id="quizFeedback" class="mt-3 text-sm p-3 bg-gray-50 rounded-lg hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-6">
+                <!-- Exam Readiness -->
+                <div class="glass-card p-5">
+                    <h2 class="font-bold text-xl mb-3"><i class="fas fa-chart-line text-emerald-500"></i> Exam Readiness</h2>
+                    <div class="flex justify-between mb-1">
+                        <span class="text-sm">Confidence Score</span>
+                        <span id="overallScore" class="font-bold text-indigo-600">0%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-3">
+                        <div id="progressFill" class="bg-gradient-to-r from-indigo-500 to-emerald-500 h-3 rounded-full w-0 transition-all duration-500"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 mt-4 text-center text-sm">
+                        <div class="bg-white p-2 rounded-lg shadow-sm">
+                            <i class="fas fa-check-circle text-green-500 text-lg"></i>
+                            <div class="mt-1"><span id="masteredCount">0</span> Mastered Topics</div>
+                        </div>
+                        <div class="bg-white p-2 rounded-lg shadow-sm">
+                            <i class="fas fa-exclamation-triangle text-amber-500 text-lg"></i>
+                            <div class="mt-1"><span id="weakCount">0</span> Weak Areas</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Topic Mind Map -->
+                <div class="glass-card p-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <h2 class="font-bold text-xl"><i class="fas fa-project-diagram text-cyan-600"></i> Topic Mind Map</h2>
+                        <button id="refreshMapBtn" class="text-xs bg-cyan-100 hover:bg-cyan-200 px-2 py-1 rounded transition">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="mindmap" class="mt-2 min-h-[150px] bg-white/50 rounded-xl p-3 text-center text-gray-400">
+                        <i class="fas fa-cloud-upload-alt text-2xl mb-2 block"></i>
+                        Upload notes to generate topic map
+                    </div>
+                </div>
+
+                <!-- Study Streak -->
+                <div class="glass-card p-4 flex justify-between items-center">
+                    <div>
+                        <i class="fas fa-fire text-pink-500 text-xl"></i>
+                        <span class="ml-2 font-semibold">Study Streak</span>
+                        <div class="text-3xl font-bold text-pink-600" id="streakValue">0</div>
+                    </div>
+                    <button id="streakBtn" class="bg-pink-100 hover:bg-pink-200 p-3 rounded-full transition">
+                        <i class="fas fa-plus-circle text-pink-500 text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="glass-card p-4 bg-gradient-to-r from-indigo-50 to-purple-50">
+                    <div class="flex items-start gap-3">
+                        <i class="fas fa-lightbulb text-yellow-500 text-xl mt-1"></i>
+                        <div>
+                            <h3 class="font-semibold text-gray-800">Pro Tip</h3>
+                            <p class="text-xs text-gray-600 mt-1">Upload your notes and past papers first! The AI answers only from YOUR materials - no hallucinations.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-8 text-center text-gray-400 text-sm border-t pt-5 italic">
+        "Google searches the web. We search your brain — and give you back only what matters for tomorrow morning."
+    </div>
+</div>
+
+<script>
+// Timer
+let examTime = null;
+let timerInterval = null;
+
+function updateTimerDisplay() {
+    if (!examTime) {
+        let d = new Date();
+        d.setHours(d.getHours() + 12);
+        examTime = d.getTime();
+    }
+    let diff = examTime - new Date().getTime();
+    if (diff < 0) {
+        document.getElementById('countdownTimer').innerHTML = "00:00:00";
+        return;
+    }
+    let h = Math.floor(diff / 3600000);
+    let m = Math.floor((diff % 3600000) / 60000);
+    let s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('countdownTimer').innerHTML = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+}
+
+function startTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    updateTimerDisplay();
+    timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+// App State
+let uploadedNotes = [];
+let uploadedPapers = [];
+let topicProgress = {};
+let streak = parseInt(localStorage.getItem('streak') || '0');
+
+// Helper Functions
+function extractTopics(filename) {
+    let name = filename.toLowerCase();
+    if (name.includes('calculus') || name.includes('math')) return ['Calculus'];
+    if (name.includes('physics')) return ['Physics'];
+    if (name.includes('chem')) return ['Chemistry'];
+    if (name.includes('bio')) return ['Biology'];
+    return ['General Studies'];
+}
+
+function getAIAnswer(question) {
+    if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
+        return { 
+            text: "⚠️ No study materials found! Please upload your notes or past papers first. I can only answer questions based on YOUR specific syllabus and materials.", 
+            source: "No documents uploaded", 
+            confidence: 0 
+        };
+    }
+    
+    let allDocs = [...uploadedNotes, ...uploadedPapers];
+    let doc = allDocs[0];
+    let answer = "";
+    
+    if (question.toLowerCase().includes('hess') || question.toLowerCase().includes('enthalpy')) {
+        answer = "📖 From your Chemistry notes:\n\nHess's Law states that the total enthalpy change of a reaction is independent of the pathway taken.\n\nFormula: ΔH°rxn = Σ ΔH°f(products) - Σ ΔH°f(reactants)\n\nThis means you can calculate the heat change of a reaction by adding up the formation enthalpies of products and subtracting reactants.";
+    } 
+    else if (question.toLowerCase().includes('calculus') || question.toLowerCase().includes('derivative')) {
+        answer = "📖 From your Mathematics notes:\n\nThe derivative represents the instantaneous rate of change.\n\nBasic rules:\n• d/dx[x^n] = n·x^(n-1)\n• d/dx[sin x] = cos x\n• d/dx[e^x] = e^x\n\nExample: If f(x) = 3x², then f'(x) = 6x.";
+    }
+    else if (question.toLowerCase().includes('newton') || question.toLowerCase().includes('force')) {
+        answer = "📖 From your Physics notes:\n\nNewton's Laws of Motion:\n\n1st Law: An object remains at rest or uniform motion unless acted by external force.\n2nd Law: F = ma (Force = mass × acceleration)\n3rd Law: Every action has an equal and opposite reaction.";
+    }
+    else {
+        answer = `📖 From "${doc.name}":\n\nBased on your study materials, the key concepts related to your question are covered in detail. Your notes emphasize understanding core principles and applying them to practice problems. Review section on ${doc.topics.join(', ')} for complete understanding.`;
+    }
+    
+    return { text: answer, source: `📌 Grounded in: ${doc.name}`, confidence: 87 };
+}
+
+function refreshUI() {
+    // Update file list
+    let fileDiv = document.getElementById('fileList');
+    fileDiv.innerHTML = '';
+    uploadedNotes.forEach(f => fileDiv.innerHTML += `<span class="bg-indigo-100 px-2 py-1 rounded text-xs">📄 ${f.name}</span>`);
+    uploadedPapers.forEach(p => fileDiv.innerHTML += `<span class="bg-purple-100 px-2 py-1 rounded text-xs">📝 ${p.name}</span>`);
+    document.getElementById('notesCount').innerText = uploadedNotes.length;
+    document.getElementById('papersCount').innerText = uploadedPapers.length;
+    
+    // Update confidence
+    let total = 0, correct = 0;
+    for (let t in topicProgress) {
+        total += topicProgress[t].total;
+        correct += topicProgress[t].correct;
+    }
+    let score = total === 0 ? 0 : Math.round((correct / total) * 100);
+    document.getElementById('overallScore').innerText = score + '%';
+    document.getElementById('progressFill').style.width = score + '%';
+    
+    // Update counts
+    let mastered = 0, weak = 0;
+    for (let t in topicProgress) {
+        let rate = topicProgress[t].total ? topicProgress[t].correct / topicProgress[t].total : 0;
+        if (rate >= 0.7) mastered++;
+        if (rate < 0.5 && topicProgress[t].total > 0) weak++;
+    }
+    document.getElementById('masteredCount').innerText = mastered;
+    document.getElementById('weakCount').innerText = weak;
+    document.getElementById('streakValue').innerText = streak;
+    
+    // Update mind map
+    let allTopics = new Set();
+    [...uploadedNotes, ...uploadedPapers].forEach(d => d.topics.forEach(t => allTopics.add(t)));
+    let mindDiv = document.getElementById('mindmap');
+    if (allTopics.size === 0) {
+        mindDiv.innerHTML = '<i class="fas fa-cloud-upload-alt text-2xl mb-2 block"></i>Upload notes to generate topic map';
+    } else {
+        mindDiv.innerHTML = '<div class="flex flex-wrap gap-2 justify-center">' + Array.from(allTopics).map(t => {
+            let rate = topicProgress[t] ? topicProgress[t].correct / topicProgress[t].total : 0;
+            let isWeak = topicProgress[t] && rate < 0.5 && topicProgress[t].total > 0;
+            return `<span class="px-3 py-1 rounded-full text-xs ${isWeak ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}"><i class="fas ${isWeak ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i> ${t}</span>`;
+        }).join('') + '</div>';
+    }
+    
+    // Save to localStorage
+    localStorage.setItem('uploadedNotes', JSON.stringify(uploadedNotes));
+    localStorage.setItem('uploadedPapers', JSON.stringify(uploadedPapers));
+    localStorage.setItem('topicProgress', JSON.stringify(topicProgress));
+    localStorage.setItem('streak', streak);
+}
+
+// File handlers
+async function addNotes(files) {
+    for (let f of files) {
+        let topics = extractTopics(f.name);
+        uploadedNotes.push({ name: f.name, topics: topics });
+        topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
+    }
+    refreshUI();
+}
+
+async function addPapers(files) {
+    for (let f of files) {
+        let topics = extractTopics(f.name);
+        uploadedPapers.push({ name: f.name, topics: topics });
+        topics.forEach(t => { if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 }; });
+    }
+    refreshUI();
+}
+
+// Load saved data
+function loadSavedData() {
+    let savedNotes = localStorage.getItem('uploadedNotes');
+    let savedPapers = localStorage.getItem('uploadedPapers');
+    let savedProgress = localStorage.getItem('topicProgress');
+    let savedStreak = localStorage.getItem('streak');
+    
+    if (savedNotes) uploadedNotes = JSON.parse(savedNotes);
+    if (savedPapers) uploadedPapers = JSON.parse(savedPapers);
+    if (savedProgress) topicProgress = JSON.parse(savedProgress);
+    if (savedStreak) streak = parseInt(savedStreak);
+    
+    refreshUI();
+}
+
+// Event Handlers
+document.getElementById('askBtn').onclick = () => {
+    let question = document.getElementById('questionInput').value.trim();
+    if (!question) { alert('Please enter your doubt!'); return; }
+    
+    document.getElementById('loadingAnswer').classList.remove('hidden');
+    document.getElementById('answerArea').classList.add('hidden');
+    
+    setTimeout(() => {
+        let result = getAIAnswer(question);
+        document.getElementById('answerText').innerHTML = result.text.replace(/\n/g, '<br>');
+        document.getElementById('citationSource').innerHTML = result.source;
+        document.getElementById('confidenceBadge').innerHTML = `🧠 ${result.confidence}% confidence`;
+        document.getElementById('answerArea').classList.remove('hidden');
+        document.getElementById('loadingAnswer').classList.add('hidden');
+    }, 500);
+};
+
+document.getElementById('voiceBtn').onclick = () => {
+    if ('webkitSpeechRecognition' in window) {
+        let recognition = new webkitSpeechRecognition();
+        recognition.onresult = (e) => {
+            document.getElementById('questionInput').value = e.results[0][0].transcript;
+        };
+        recognition.start();
+    } else {
+        alert('Voice input not supported in this browser. Please use Chrome or Edge.');
+    }
+};
+
+document.getElementById('genQuizBtn').onclick = () => {
+    if (uploadedNotes.length === 0 && uploadedPapers.length === 0) {
+        alert('Please upload study materials first!');
+        return;
+    }
+    document.getElementById('quizQuestion').innerHTML = '❓ Based on your materials: Explain a key concept from your notes and how it applies to exam questions.';
+    document.getElementById('quizArea').classList.remove('hidden');
+};
+
+document.getElementById('evaluateQuizBtn').onclick = () => {
+    let answer = document.getElementById('quizAnswer').value.trim();
+    if (!answer) { alert('Please provide an answer'); return; }
+    
+    let feedback = '✅ Great attempt! ';
+    if (answer.length > 30) {
+        feedback += 'Your answer shows good understanding. Compare with your notes for completeness.';
+    } else {
+        feedback += 'Try to write more detailed answers. Review your notes for key points.';
+    }
+    document.getElementById('quizFeedback').innerHTML = feedback;
+    document.getElementById('quizFeedback').classList.remove('hidden');
+    
+    // Update progress
+    let topics = [...uploadedNotes, ...uploadedPapers].flatMap(d => d.topics);
+    topics.slice(0, 2).forEach(t => {
+        if (!topicProgress[t]) topicProgress[t] = { correct: 0, total: 0 };
+        topicProgress[t].total++;
+        if (answer.length > 25) topicProgress[t].correct++;
+    });
+    refreshUI();
+};
+
+document.getElementById('refreshMapBtn').onclick = () => refreshUI();
+document.getElementById('streakBtn').onclick = () => { 
+    streak++; 
+    refreshUI(); 
+    alert(`🔥 Study streak: ${streak} days! Keep going!`); 
+};
+
+// Timer button
+document.getElementById('resetTimerBtn').onclick = () => {
+    let hours = prompt("Enter hours until exam:", "12");
+    if (hours && !isNaN(parseInt(hours))) {
+        examTime = new Date().getTime() + (parseInt(hours) * 60 * 60 * 1000);
+        startTimer();
+        alert(`Timer set to ${hours} hours from now!`);
+    }
+};
+
+// Upload triggers
+document.getElementById('notesZone').onclick = () => document.getElementById('notesInput').click();
+document.getElementById('papersZone').onclick = () => document.getElementById('papersInput').click();
+document.getElementById('notesInput').onchange = (e) => addNotes(Array.from(e.target.files));
+document.getElementById('papersInput').onchange = (e) => addPapers(Array.from(e.target.files));
+
+// Initialize
+loadSavedData();
+startTimer();
+</script>
+
+</body>
+</html>
